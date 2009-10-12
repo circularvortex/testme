@@ -1,0 +1,93 @@
+# $Id: uc_tax_wa-module.pot,v 1.1 2009/04/21 17:29:19 jhodgdon Exp $
+#
+# LANGUAGE translation of Drupal (general)
+# Copyright YEAR NAME <EMAIL@ADDRESS>
+# Generated from files:
+#  uc_tax_wa.module,v 1.1 2009/04/21 16:52:21 jhodgdon
+#  uc_tax_wa.info,v 1.2 2009/04/21 16:57:12 jhodgdon
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"POT-Creation-Date: 2009-04-21 10:24-0700\n"
+"PO-Revision-Date: YYYY-mm-DD HH:MM+ZZZZ\n"
+"Last-Translator: NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <EMAIL@ADDRESS>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+#: uc_tax_wa.module:45
+msgid "Default tax rate"
+msgstr ""
+
+#: uc_tax_wa.module:46
+msgid "The default tax rate to use, if the delivery address is in Washington state, but the rate lookup fails. Enter as a decimal, such as 9.8 for a 9.8% tax rate"
+msgstr ""
+
+#: uc_tax_wa.module:52
+msgid "Default location code"
+msgstr ""
+
+#: uc_tax_wa.module:53
+msgid "The default tax location code to use, if the delivery address is in Washington state, but the rate lookup fails. This is a 4-digit number, obtained from the Department of Revenue. Note that providing this location does NOT override the default rate (they should agree)."
+msgstr ""
+
+#: uc_tax_wa.module:59
+msgid "Show location code"
+msgstr ""
+
+#: uc_tax_wa.module:60
+msgid "Set to Yes if you want to show the location code on the tax line item, so you and the customer can see what location was used."
+msgstr ""
+
+#: uc_tax_wa.module:62
+msgid "No"
+msgstr ""
+
+#: uc_tax_wa.module:62
+msgid "Yes"
+msgstr ""
+
+#: uc_tax_wa.module:78
+msgid "Taxed product types"
+msgstr ""
+
+#: uc_tax_wa.module:79
+msgid "Product types to apply Washington state sales taxes to."
+msgstr ""
+
+#: uc_tax_wa.module:97
+msgid "Taxed line items"
+msgstr ""
+
+#: uc_tax_wa.module:98
+msgid "Line items to apply Washington state sales taxes to."
+msgstr ""
+
+#: uc_tax_wa.module:248 uc_tax_wa.info:0
+msgid "Washington Sales Tax"
+msgstr ""
+
+#: uc_tax_wa.module:25
+msgid "Washington state sales tax settings"
+msgstr ""
+
+#: uc_tax_wa.module:26
+msgid "Settings for Washington state sales tax"
+msgstr ""
+
+#: uc_tax_wa.module:0
+msgid "uc_tax_wa"
+msgstr ""
+
+#: uc_tax_wa.info:0
+msgid "Charge Washington state destination-based sales tax on everything shipped to a Washington address."
+msgstr ""
+
+#: uc_tax_wa.info:0
+msgid "Ubercart - extra"
+msgstr ""
+

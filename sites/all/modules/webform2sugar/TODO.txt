@@ -1,0 +1,5 @@
+Here is a list of TODO's I have spoted...
+
+-- Make the webform fields to Sugar fields mapping easier - without needing to revisit / edit the form component after it has been created. This should be available once the new field is created.
+-- Test on other versions of SugarCRM, I am using SugarCRM 5.2 Community Edition
+--- If you want to remove a mapping, there is no option. I added the "none" option in the sugar mapping fields, but has not been tested. 

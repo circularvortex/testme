@@ -1,0 +1,832 @@
+<?php
+// $Id: uc_echecknet.module,v 1.2.2.3 2009/05/21 17:44:47 rszrama Exp $
+
+/**
+ * @file
+ * Accept eCheck payments using Authorize.Net's eCheck.Net service.
+ */
+
+
+/**
+ * Implementation of hook_menu().
+ */
+function uc_echecknet_menu() {
+  $items = array();
+
+  $items['admin/store/orders/%uc_order/echecknet'] = array(
+    'title callback' => 'uc_echecknet_terminal_title',
+    'title arguments' => array(3),
+    'description' => 'Displays a form to process an eCheck payment.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('uc_echecknet_terminal_form', 3),
+    'access arguments' => array('process echeck payments'),
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+}
+
+// Set the title for the eCheck.Net terminal.
+function uc_echecknet_terminal_title($order) {
+  return t('eCheck.Net terminal: Order @order_id', array('@order_id' => $order->order_id));
+}
+
+/**
+ * Implementation of hook_perm().
+ */
+function uc_echecknet_perm() {
+  return array('process echeck payments');
+}
+
+/**
+ * Implementation of hook_cron().
+ */
+function uc_echecknet_cron() {
+  // Delete any eCheck data that's been stagnant for 15 minutes or more.
+  db_query("DELETE FROM {uc_payment_echecknet} WHERE order_id IN(SELECT order_id FROM {uc_orders} WHERE order_status IN". uc_order_status_list('specific', TRUE) ." AND modified <= %d)", time() - variable_get('uc_echecknet_wipe_interval', 900));
+}
+
+/**
+ * Implementation of hook_form_alter().
+ */
+function uc_echecknet_form_alter(&$form, &$form_state, $form_id) {
+  switch ($form_id) {
+    case 'uc_payment_methods_form':
+      if (empty($_POST) && uc_echecknet_encryption_key() === FALSE) {
+        drupal_set_message(t('The eCheck.Net encryption key filepath must be configured to accept eCheck payments.'), 'error');
+      }
+      $form['#validate'][] = 'uc_echecknet_settings_form_validate';
+      $form['#submit'][] = 'uc_echecknet_settings_form_submit';
+      break;
+
+  }
+}
+
+// Makes sure the encryption key directory in the eCheck.Net settings is valid.
+function uc_echecknet_settings_form_validate($form, &$form_state) {
+  $dir = variable_get('uc_echecknet_encryption_path', t('Not configured, see below.'));
+  $filename = rtrim($dir, '/\\') .'/uc_echecknet.key';
+
+  if ($form_state['values']['uc_echecknet_encryption_path'] !== variable_get('uc_echecknet_encryption_path', t('Not configured, see below.'))) {
+    $dir = rtrim($form_state['values']['uc_echecknet_encryption_path'], '/\\');
+
+    $_SESSION['update_echecknet_encrypt_dir'] = TRUE;
+    if (!empty($dir) && $dir !== t('Not configured, see below.')) {
+      if (!is_dir($dir)) {
+        form_set_error('uc_echecknet_encryption_path', t('You have specified a non-existent directory.'));
+        unset($_SESSION['update_echecknet_encrypt_dir']);
+      }
+      else {
+        $file = fopen($dir .'/encrypt.test', 'w');
+        if ($file === FALSE) {
+          form_set_error('uc_echecknet_encryption_path', t('Cannot write to directory, please verify the directory permissions.'));
+          unset($_SESSION['update_echecknet_encrypt_dir']);
+        }
+        else {
+          if (fwrite($file, '0123456789') === FALSE) {
+            form_set_error('uc_echecknet_encryption_path', t('Cannot write to directory, please verify the directory permissions.'));
+            unset($_SESSION['update_echecknet_encrypt_dir']);
+            fclose($file);
+          }
+          else {
+            fclose($file);
+            $file = fopen($dir .'/encrypt.test', 'r');
+            if ($file === FALSE) {
+              form_set_error('uc_echecknet_encryption_path', t('Cannot read from directory, please verify the directory permissions.'));
+              unset($_SESSION['update_echecknet_encrypt_dir']);
+            }
+            fclose($file);
+          }
+          unlink($dir .'/encrypt.test');
+        }
+      }
+    }
+  }
+}
+
+// Creates the encryption key file if it doesn't already exist.
+function uc_echecknet_settings_form_submit($form, &$form_state) {
+  if ($_SESSION['update_echecknet_encrypt_dir'] === TRUE) {
+    $dir = rtrim($form_state['values']['uc_echecknet_encryption_path'], '/\\');
+
+    if (!empty($dir) && $dir !== t('Not configured, see below.')) {
+      if (!file_exists($dir .'/uc_echecknet.key')) {
+        if (!$file = fopen($dir .'/uc_echecknet.key', 'wb')) {
+          $message = t('eCheck.Net encryption key file creation failed. Check your filepath settings and directory permissions.');
+          drupal_set_message($message, 'error');
+          watchdog('uc_credit', $message, WATCHDOG_ERROR);
+        }
+        else {
+          // Replacement key generation suggested by Barry Jaspan for increased security.
+          fwrite($file, md5(drupal_get_token(serialize($_REQUEST) . serialize($_SERVER) . time())));
+          fclose($file);
+
+          drupal_set_message(t('eCheck.Net encryption key file generated. eCheck data will now be encrypted.'));
+          watchdog('uc_echecknet', 'eCheck.Net encryption key file generated.');
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implementation of hook_store_status().
+ */
+function uc_echecknet_store_status() {
+  // Throw up an error row if encryption has not been set up yet.
+  if ($key = uc_echecknet_encryption_key()) {
+    $statuses[] = array(
+      'status' => 'ok',
+      'title' => t('eCheck.Net encryption'),
+      'desc' => t('eCheck data is encrypted during checkout for maximum security.'),
+    );
+  }
+  else {
+    $statuses[] = array(
+      'status' => 'error',
+      'title' => t('eCheck.Net encryption'),
+      'desc' => t('You must review your <a href="!url">eCheck.Net security settings</a> and enable encryption before you can accept eCheck payments.', array('!url' => url('admin/store/settings/payment/edit/methods'))),
+    );
+  }
+
+  return $statuses;
+}
+
+/**
+ * Implementation of hook_order().
+ */
+function uc_echecknet_order($op, &$arg1, $arg2) {
+  // If the order payment method is eCheck.Net...
+  if ($arg1->payment_method == 'echecknet') {
+    switch ($op) {
+      // Attempt payment upon order submission during checkout.
+      case 'submit':
+        // Process the eCheck payment.
+        $result = uc_echecknet_process($arg1, $arg1->order_total);
+
+        // If the payment failed, halt the checkout process.
+        if ($result !== TRUE) {
+          return array(array('pass' => FALSE, 'message' => $result));
+        }
+        else {
+          // Otherwise empty out the routing and account numbers.
+          uc_echecknet_wipe_numbers($arg1->order_id);
+        }
+        break;
+
+      case 'save':
+        // Save the eCheck data for the order.
+        uc_echecknet_save_echeck($arg1);
+        break;
+
+      case 'load':
+        // Load the eCheck data for the order.
+        $arg1->payment_details = uc_echecknet_load_echeck($arg1);
+        break;
+    }
+  }
+}
+
+/**
+ * Implementation of hook_payment_method().
+ */
+function uc_echecknet_payment_method() {
+  $methods = array();
+
+  // Do not show the eCheck payment method if encryption is not configured.
+  if (arg(1) == 'checkout' && uc_echecknet_encryption_key() === FALSE) {
+    return;
+  }
+
+  $methods[] = array(
+    'id' => 'echecknet',
+    'name' => arg(1) == 'checkout' ? t('eCheck') : t('eCheck.Net'),
+    'title' => t('eCheck'),
+    'desc' => t('Pay by eCheck using your bank account information.'),
+    'callback' => 'uc_payment_method_echecknet',
+    'weight' => 1,
+    'checkout' => TRUE,
+    'no_gateway' => TRUE,
+  );
+
+  return $methods;
+}
+
+// Callback function for the eCheck.Net payment method.
+function uc_payment_method_echecknet($op, &$arg1, $silent = FALSE) {
+  switch ($op) {
+    case 'cart-details':
+      return uc_strip_form(drupal_get_form('uc_echecknet_payment_form', $arg1));
+
+    case 'cart-process':
+      // Fetch the eCheck details from the $_POST directly.
+      $data = array(
+        'echeck_bank_name' => $_POST['echeck_bank_name'],
+        'echeck_bank_aba_code' => str_replace(' ', '',  $_POST['echeck_bank_aba_code']),
+        'echeck_bank_acct_num' => str_replace(' ', '', $_POST['echeck_bank_acct_num']),
+        'echeck_bank_acct_name' => $_POST['echeck_bank_acct_name'],
+        'echeck_bank_acct_type' => $_POST['echeck_bank_acct_type'],
+      );
+
+      // Go ahead and put the eCheck data in the payment details array.
+      $arg1->payment_details = $data;
+
+      // Default our value for validation.
+      $return = TRUE;
+
+      // Make sure a bank name was entered.
+      if (empty($data['echeck_bank_name'])) {
+        if (!$silent) {
+          drupal_set_message(t('You must enter the name of your bank.'), 'error');
+        }
+        $return = FALSE;
+      }
+
+      // Validate the bank routing number.
+      if (empty($data['echeck_bank_aba_code']) || !ctype_digit($data['echeck_bank_aba_code'])) {
+        if (!$silent) {
+          drupal_set_message(t('You must enter a valid bank routing number.'), 'error');
+        }
+        $return = FALSE;
+      }
+
+      // Validate the bank account number.
+      if (empty($data['echeck_bank_acct_num']) || !ctype_digit($data['echeck_bank_acct_num'])) {
+        if (!$silent) {
+          drupal_set_message(t('You must enter a valid bank account number.'), 'error');
+        }
+        $return = FALSE;
+      }
+
+      // Make sure an account name was entered.
+      if (empty($data['echeck_bank_acct_name'])) {
+        if (!$silent) {
+          drupal_set_message(t('You must enter the name associated with your bank account.'), 'error');
+        }
+        $return = FALSE;
+      }
+
+      return $return;
+
+    case 'cart-review':
+      $review = array();
+
+      $review[] = array('title' => t('Bank'), 'data' => check_plain($arg1->payment_details['echeck_bank_name']));
+      $review[] = array('title' => t('Routing number'), 'data' => check_plain($arg1->payment_details['echeck_bank_aba_code']));
+      $review[] = array('title' => t('Account number'), 'data' => check_plain(variable_get('uc_echecknet_acct_num_mask', 'xxxxxx') . $arg1->payment_details['echeck_bank_acct_num_last4']));
+      $review[] = array('title' => t('Account name'), 'data' => check_plain($arg1->payment_details['echeck_bank_acct_name']));
+      $review[] = array('title' => t('Account type'), 'data' => uc_echecknet_acct_type($arg1->payment_details['echeck_bank_acct_type']));
+
+      return $review;
+
+    case 'order-view':
+    case 'customer-view':
+      $lines = array(
+        t('Bank name') .': '. check_plain($arg1->payment_details['echeck_bank_name']),
+        t('Account #') .': '. check_plain(variable_get('uc_echecknet_acct_num_mask', 'xxxxxx') . $arg1->payment_details['echeck_bank_acct_num_last4']),
+      );
+
+      if ($op == 'order-view' && user_access('process echeck payments')) {
+        $lines[] = l(t('Process eCheck payment.'), 'admin/store/orders/'. $arg1->order_id .'/echecknet');
+      }
+
+      return implode('<br />', $lines);
+
+    case 'order-details':
+      if (user_access('process echeck payments')) {
+        return t('Process eCheck.Net payments using the<br />terminal available through the view tab.');
+      }
+      else {
+        return t('Processing eCheck.Net payments requires<br />appropriate admin permission.');
+      }
+
+    case 'settings':
+      return uc_echecknet_settings_form();
+  }
+}
+
+// Form to gather the required fields to process an eCheck payment.
+function uc_echecknet_payment_form($form_state, $order) {
+  $form = array();
+
+  $form['echeck_bank_name'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Bank name'),
+    '#default_value' => $order->payment_details['echeck_bank_name'],
+    '#attributes' => array('autocomplete' => 'off'),
+    '#required' => TRUE,
+    '#maxlength' => 50,
+    '#size' => 32,
+  );
+  $form['echeck_bank_aba_code'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Bank routing number'),
+    '#description' => t('The first 9 digit number along the bottom of your checks.'),
+    '#default_value' => $order->payment_details['echeck_bank_aba_code'],
+    '#attributes' => array('autocomplete' => 'off'),
+    '#required' => TRUE,
+    '#maxlength' => 9,
+    '#size' => 32,
+  );
+  $form['echeck_bank_acct_num'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Bank account number'),
+    '#description' => t('Up to a 20 digit number next to the the routing number.'),
+    '#default_value' => $order->payment_details['echeck_bank_acct_num'],
+    '#attributes' => array('autocomplete' => 'off'),
+    '#required' => TRUE,
+    '#maxlength' => 20,
+    '#size' => 32,
+  );
+  $form['echeck_bank_acct_name'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Name on the account'),
+    '#default_value' => $order->payment_details['echeck_bank_acct_name'],
+    '#attributes' => array('autocomplete' => 'off'),
+    '#required' => TRUE,
+    '#maxlength' => 50,
+    '#size' => 32,
+  );
+  $form['echeck_bank_acct_type'] = array(
+    '#type' => 'select',
+    '#title' => t('Bank account type'),
+    '#options' => uc_echecknet_acct_type(),
+    '#default_value' => !empty($order->payment_details['echeck_bank_acct_type']) ? $order->payment_details['echeck_bank_acct_type'] : 'CHECKING',
+    '#required' => TRUE,
+  );
+
+  return $form;
+}
+
+// Settings for the eCheck.Net fieldset on the payment method settings form.
+function uc_echecknet_settings_form() {
+  $form = array(
+    '#description' => t('eCheck.Net is a service of Authorize.Net. In order to use it, you must have an Authorize.Net account with this service enabled.'),
+  );
+
+  $form['transaction'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Transaction settings'),
+  );
+  $form['transaction']['uc_echecknet_txn_mode'] = array(
+    '#type' => 'radios',
+    '#title' => t('Transaction mode'),
+    '#description' => t('Only specify a developer test account if you login to your account through https://test.authorize.net.<br/>Adjust to live transactions when you are ready to start processing real payments.'),
+    '#options' => array(
+      'live' => t('Live transactions in a live account'),
+      'live_test' => t('Test transactions in a live account'),
+      'developer_test' => t('Developer test account transactions'),
+    ),
+    '#default_value' => variable_get('uc_echecknet_txn_mode', 'live_test'),
+  );
+  $form['transaction']['uc_echecknet_email_customer'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Tell Authorize.net to e-mail the customer a payment receipt based on your account settings.'),
+    '#default_value' => variable_get('uc_echecknet_email_customer', FALSE),
+  );
+
+  $form['api'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('API Login ID and Transaction Key'),
+    '#description' => t('These fields are required for Ubercart to communicate with your Authorize.Net account to process eCheck payments. These are different from your normal account login ID and password and may be found through your account settings page.'),
+  );
+  $form['api']['uc_echecknet_api_login'] = array(
+    '#type' => 'textfield',
+    '#title' => t('API login ID'),
+    '#default_value' => variable_get('uc_echecknet_api_login', ''),
+    '#maxlength' => 20,
+    '#size' => 24,
+  );
+  $form['api']['uc_echecknet_api_tran_key'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Transaction key'),
+    '#default_value' => variable_get('uc_echecknet_api_tran_key', ''),
+    '#maxlength' => 16,
+    '#size' => 24,
+  );
+
+  $form['security'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Account number security'),
+  );
+  $form['security']['uc_echecknet_encryption_path'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Account number encryption key filepath'),
+    '#description' => t('<b>You must enable encryption</b> by following the <a href="!url">encryption instructions</a> in order to protect customer bank account data.<br />In short, you should specify a path outside of your document root where the encryption key may be stored.<br />Relative paths will be resolved relative to the Drupal installation directory.<br />Once this is set, you should not change it.', array('!url' => 'http://www.ubercart.org/docs/user/2731/credit_card_settings#security')),
+    '#default_value' => variable_get('uc_echecknet_encryption_path', t('Not configured, see below.')),
+  );
+  $form['security']['uc_echecknet_acct_num_mask'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Account number mask'),
+    '#description' => t('To protect bank account numbers, the last 4 digits will be displayed after this mask when they are shown to the user.'),
+    '#default_value' => variable_get('uc_echecknet_acct_num_mask', 'xxxxxx'),
+  );
+  $form['security']['uc_echecknet_wipe_interval'] = array(
+    '#type' => 'select',
+    '#title' => t('Data wipe interval'),
+    '#description' => t('eCheck data will be wiped on inactive orders that are canceled or never make it through checkout after this interval of time passes.'),
+    '#options' => array(
+      300 => t('5 minutes'),
+      600 => t('10 minutes'),
+      900 => t('15 minutes'),
+      1200 => t('20 minutes'),
+      1500 => t('25 minutes'),
+      1800 => t('30 minutes'),
+      2700 => t('45 minutes'),
+      3600 => t('1 hour'),
+      7200 => t('2 hours'),
+      14400 => t('4 hours'),
+      28800 => t('8 hours'),
+      57600 => t('16 hours'),
+      86400 => t('1 day'),
+    ),
+    '#default_value' => variable_get('uc_echecknet_wipe_interval', 900),
+  );
+
+  return $form;
+}
+
+/**
+ * Loads the key for bank account number encryption from a file.
+ *
+ * @return
+ *   The encryption key or FALSE if it can't be found.
+ */
+function uc_echecknet_encryption_key() {
+  static $key;
+
+  if (!empty($key)) {
+    return $key;
+  }
+
+  $dir = variable_get('uc_echecknet_encryption_path', t('Not configured, see below.'));
+
+  if (!empty($dir) && $dir !== t('Not configured, see below.')) {
+    $filename = rtrim($dir, '/\\') .'/uc_echecknet.key';
+
+    if (file_exists($filename)) {
+      if (!$file = fopen($filename, 'r')) {
+        return FALSE;
+      }
+
+      $key = fread($file, filesize($filename));
+      fclose($file);
+    }
+  }
+  else {
+    return FALSE;
+  }
+
+  return $key;
+}
+
+/**
+ * Process an eCheck payment for an order for the amount specified.
+ *
+ * @param $order
+ *   The fully loaded order object holding the eCheck payment details.
+ * @param $amount
+ *   The amount to charge on the eCheck.
+ * @return
+ *   TRUE if payment was successful or an error message if not.
+ */
+function uc_echecknet_process($order, $amount) {
+  // Build a description of the order for logging in Auth.Net.
+  $description = array();
+  foreach ((array) $order->products as $product) {
+    $description[] = $product->qty .'x '. $product->model;
+  }
+
+  $billing_country = uc_get_country_data(array('country_id' => $order->billing_country));
+  $delivery_country = uc_get_country_data(array('country_id' => $order->delivery_country));
+
+  $context = array(
+    'revision' => 'formatted-original',
+    'location' => 'eCheck.Net-charge',
+  );
+  $options = array(
+    'sign' => FALSE,
+    'thou' => FALSE,
+    'dec' => '.',
+  );
+
+  // Build the POST data for the transaction.
+  $submit_data = array(
+    // Merchant Information
+    'x_login' => variable_get('uc_echecknet_api_login', ''),
+    'x_tran_key' => variable_get('uc_echecknet_api_tran_key', ''),
+
+    // Transaction Information
+    'x_version' => '3.1',
+    'x_method' => 'ECHECK',
+    'x_bank_aba_code' => $order->payment_details['echeck_bank_aba_code'],
+    'x_bank_acct_num' => $order->payment_details['echeck_bank_acct_num'],
+    'x_bank_acct_type' => $order->payment_details['echeck_bank_acct_type'],
+    'x_bank_name' => $order->payment_details['echeck_bank_name'],
+    'x_bank_acct_name' => $order->payment_details['echeck_bank_acct_name'],
+    'x_echeck_type' => 'WEB',
+    'x_recurring_billing' => 'FALSE',
+    'x_amount' => uc_price($amount, $context, $options),
+    'x_test_request' => variable_get('uc_echecknet_txn_mode', 'live_test') == 'live_test' ? 'TRUE' : 'FALSE',
+
+    // Order Information
+    'x_invoice_num' => $order->order_id,
+    'x_description' => substr(implode(', ', $description), 0, 255),
+
+    // Customer Information
+    'x_first_name' => substr($order->billing_first_name, 0, 50),
+    'x_last_name' => substr($order->billing_last_name, 0, 50),
+    'x_company' => substr($order->billing_company, 0, 50),
+    'x_address' => substr($order->billing_street1, 0, 60),
+    'x_city' => substr($order->billing_city, 0, 40),
+    'x_state' => substr(uc_get_zone_code($order->billing_zone), 0, 40),
+    'x_zip' => substr($order->billing_postal_code, 0, 20),
+    'x_country' => !$billing_country ? '' : $billing_country[0]['country_iso_code_2'],
+    'x_phone' => substr($order->billing_phone, 0, 25),
+    'x_email' => substr($order->primary_email, 0, 255),
+    'x_cust_id' => substr($order->uid, 0, 20),
+    'x_customer_ip' => substr(ip_address(), 0, 15),
+
+    // Shipping Information
+    'x_ship_to_first_name' => substr($order->delivery_first_name, 0, 50),
+    'x_ship_to_last_name' => substr($order->delivery_last_name, 0, 50),
+    'x_ship_to_company' => substr($order->delivery_company, 0, 50),
+    'x_ship_to_address' => substr($order->delivery_street1, 0, 60),
+    'x_ship_to_city' => substr($order->delivery_city, 0, 40),
+    'x_ship_to_state' => substr(uc_get_zone_code($order->delivery_zone), 0, 40),
+    'x_ship_to_zip' => substr($order->delivery_postal_code, 0, 20),
+    'x_ship_to_country' => !$delivery_country ? '' : $delivery_country[0]['country_iso_code_2'],
+
+    // Extra Information
+    'x_delim_data' => 'TRUE',
+    'x_delim_char' => '|',
+    'x_encap_char' => '"',
+    'x_relay_response' => 'FALSE',
+    'x_email_customer' => variable_get('uc_echecknet_email_customer', FALSE) ? 'TRUE' : 'FALSE',
+  );
+
+  // Determine the correct URL based on the transaction mode.
+  if (variable_get('uc_echecknet_txn_mode', 'live_test') == 'developer_test') {
+    $post_url = 'https://test.authorize.net/gateway/transact.dll';
+  }
+  else {
+    $post_url = 'https://secure.authorize.net/gateway/transact.dll';
+  }
+
+  // Translate the data array into a string we can POST.
+  $post_fields = array();
+  foreach ($submit_data as $key => $value) {
+    $post_fields[] = $key .'='. urlencode($value);
+  }
+
+  // Setup the cURL request.
+  $ch = curl_init();
+  curl_setopt($ch, CURLOPT_URL, $post_url);
+  curl_setopt($ch, CURLOPT_VERBOSE, 0);
+  curl_setopt($ch, CURLOPT_POST, 1);
+  curl_setopt($ch, CURLOPT_POSTFIELDS, implode('&', $post_fields));
+  curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+  curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+  curl_setopt($ch, CURLOPT_NOPROGRESS, 1);
+  curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 0);
+  $result = curl_exec($ch);
+
+  // Log any errors to the watchdog.
+  if ($error = curl_error($ch)) {
+    watchdog('uc_echecknet', 'cURL error: @error', array('@error' => $error), WATCHDOG_ERROR);
+    return t('We encountered a server error while trying to process your payment. Please try again and contact us to complete your order if the problem persists.');
+  }
+  curl_close($ch);
+
+  $response = explode('|', $result);
+
+  // Trim off the encapsulating character from the results.
+  for ($i = 0; $i < count($response); $i++) {
+    $response[$i] = substr($response[$i], 1, strlen($response[$i]) - 2);
+  }
+
+  /**
+   * Response key index:
+   * 0 = Response Code
+   * 2 = Response Reason Code
+   * 3 = Response Reason Text
+   * 6 = Transaction ID.
+   * 9 = Amount
+   * 11 = Transaction Type
+   * 37 = Transaction Response MD5 Hash
+   */
+  switch ($response[0]) {
+    // Payment is accepted.
+    case '1':
+      $result = array(
+        'success' => TRUE,
+        'message' => t('Payment accepted. Transaction ID: @txn_id', array('@txn_id' => $response[6])),
+      );
+      break;
+
+    // Payment is declined.
+    case '2':
+      $result = array(
+        'success' => FALSE,
+        'message' => t('Payment declined: @message', array('@message' => $response[3])),
+      );
+      break;
+
+    // Error processing the transaction.
+    case '3':
+      $result = array(
+        'success' => FALSE,
+        'message' => t('Payment failed: @message', array('@message' => $response[3])),
+      );
+      break;
+
+    // Payment is under review.
+    case '4':
+      $result = array(
+        'success' => TRUE,
+        'message' => t('Payment under review: @message', array('@message' => $response[3])),
+      );
+      break;
+  }
+
+  // Build an admin order comment.
+  $context = array(
+    'revision' => 'formatted-original',
+    'location' => 'eCheck.Net-charge-comment',
+  );
+  $comment = t('<b>eCheck.Net</b><br />!message<br />Amount: !amount', array('!message' => $result['message'], '!amount' => uc_price($response[9], $context)));
+
+  // Save the comment to the order.
+  uc_order_comment_save($order->order_id, $user->uid, $comment, 'admin');
+
+  // Return TRUE for successful payments or the error message for failures.
+  if ($result['success']) {
+    // Enter the payment.
+    uc_payment_enter($order->order_id, 'echecknet', $response[9], 0, '', t('Transaction ID: @txn_id', array('@txn_id' => $response[6])));
+
+    return TRUE;
+  }
+  else {
+    return $result['message'];
+  }
+}
+
+// Save the eCheck data for an order.
+function uc_echecknet_save_echeck($order) {
+  // Build the data array for the record in the database.
+  $data = $order->payment_details;
+  $data['order_id'] = $order->order_id;
+
+  if (empty($data['echeck_bank_acct_num_last4'])) {
+    $data['echeck_bank_acct_num_last4'] = substr($data['echeck_bank_acct_num'], -4);
+  }
+
+  // Encrypt the routing and account numbers.
+  $key = uc_echecknet_encryption_key();
+  $crypt = new uc_encryption_class;
+
+  $data['echeck_bank_aba_code'] = $crypt->encrypt($key, base64_encode($data['echeck_bank_aba_code'] . md5(time())));
+  $data['echeck_bank_acct_num'] = $crypt->encrypt($key, base64_encode($data['echeck_bank_acct_num'] . md5(time())));
+
+  // Log any errors to the watchdog.
+  uc_store_encryption_errors($crypt, 'uc_echecknet');
+
+  // Check for an existing record.
+  $echeck_id = db_result(db_query("SELECT echeck_id FROM {uc_payment_echecknet} WHERE order_id = %d", $order->order_id));
+
+  if ($echeck_id) {
+    $data['echeck_id'] = $echeck_id;
+    $key = 'echeck_id';
+  }
+  else {
+    $key = NULL;
+  }
+
+  drupal_write_record('uc_payment_echecknet', $data, $key);
+}
+
+// Load the eCheck data for an order.
+function uc_echecknet_load_echeck($order) {
+  $result = db_query("SELECT * FROM {uc_payment_echecknet} WHERE order_id = %d", $order->order_id);
+
+  if ($data = db_fetch_array($result)) {
+    // Decrypt the routing and account numbers.
+    $key = uc_echecknet_encryption_key();
+    $crypt = new uc_encryption_class;
+
+    $data['echeck_bank_aba_code'] = base64_decode($crypt->decrypt($key, $data['echeck_bank_aba_code']));
+    $data['echeck_bank_aba_code'] = substr($data['echeck_bank_aba_code'], 0, strlen($data['echeck_bank_aba_code']) - 32);
+    $data['echeck_bank_acct_num'] = base64_decode($crypt->decrypt($key, $data['echeck_bank_acct_num']));
+    $data['echeck_bank_acct_num'] = substr($data['echeck_bank_acct_num'], 0, strlen($data['echeck_bank_acct_num']) - 32);
+
+    // Log any errors to the watchdog.
+    uc_store_encryption_errors($crypt, 'uc_echecknet');
+
+    return $data;
+  }
+  else {
+    return array();
+  }
+}
+
+// Wipe the routing and account numbers from the database for a given order.
+function uc_echecknet_wipe_numbers($order_id) {
+  db_query("UPDATE {uc_payment_echecknet} SET echeck_bank_aba_code = '', echeck_bank_acct_num = '' WHERE order_id = %d", $order_id);
+}
+
+// Return the name of an account type or the entire array of options.
+function uc_echecknet_acct_type($option = NULL) {
+  $types = array(
+    'CHECKING' => t('Checking'),
+    'BUSINESSCHECKING' => t('Business checking'),
+    'SAVINGS' => t('Savings'),
+  );
+
+  if (!empty($option) && !empty($types[$option])) {
+    return $types[$option];
+  }
+
+  return $types;
+}
+
+// Allow administrators to process manual eCheck payments.
+function uc_echecknet_terminal_form($form_state, $order) {
+  $form = array();
+
+  $form['order'] = array(
+    '#type' => 'value',
+    '#value' => $order,
+  );
+
+  $balance = uc_payment_balance($order);
+
+  $form['amount'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Payment amount'),
+    '#description' => t('Order balance: @balance', array('@balance' => uc_currency_format($balance))),
+    '#default_value' => $balance > 0 ? uc_currency_format($balance, FALSE, FALSE) : 0,
+    '#field_prefix' => variable_get('uc_sign_after_amount', FALSE) ? '' : variable_get('uc_currency_sign', '$'),
+    '#field_suffix' => variable_get('uc_sign_after_amount', FALSE) ? variable_get('uc_currency_sign', '$') : '',
+    '#required' => TRUE,
+    '#size' => 12,
+  );
+
+  $form['payment'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Payment details'),
+    '#tree' => TRUE,
+  );
+
+  $form['payment'] += uc_echecknet_payment_form($form_state, $order);
+
+  // If the eCheck data was temporarily saved to the order, clear it now.
+  if ($_SESSION['echeck_clear']) {
+    // Wipe the routing and account numbers from the order.
+    uc_echecknet_wipe_numbers($order->order_id);
+
+    unset($_SESSION['echeck_clear']);
+  }
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Process payment'),
+    '#suffix' => l(t('Cancel'), 'admin/store/orders/'. $order->order_id),
+  );
+
+  return $form;
+}
+
+function uc_echecknet_terminal_form_validate($form, &$form_state) {
+  if (!is_numeric($form_state['values']['amount']) || $form_state['values']['amount'] <= 0) {
+    form_set_error('amount', t('You must enter a positive number for the payment amount.'));
+  }
+}
+
+function uc_echecknet_terminal_form_submit($form, &$form_state) {
+  $order = $form_state['values']['order'];
+  $order->payment_details = $form_state['values']['payment'];
+
+  // Process the eCheck payment.
+  $result = uc_echecknet_process($order, $form_state['values']['amount']);
+
+  // If the payment failed, halt the checkout process.
+  if ($result !== TRUE) {
+    drupal_set_message($result, 'error');
+
+    uc_order_save($order);
+
+    $_SESSION['echeck_clear'] = TRUE;
+  }
+  else {
+    // Otherwise empty out the routing and account numbers.
+    uc_echecknet_wipe_numbers($order->order_id);
+
+    // Update the last 4 digits of the account stored in the database.
+    db_query("UPDATE {uc_payment_echecknet} SET echeck_bank_acct_num_last4 = '%s' WHERE order_id = %d", substr($order->payment_details['echeck_bank_acct_num'], -4), $order->order_id);
+
+    drupal_set_message(t('eCheck payment processed successfully!'));
+
+    $form_state['redirect'] = 'admin/store/orders/'. $order->order_id;
+  }
+}
+

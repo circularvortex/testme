@@ -1,0 +1,15 @@
+; $Id: uc_tax_wa.info,v 1.2.2.1 2009/04/21 18:12:56 jhodgdon Exp $
+name = Washington Sales Tax
+description = "Charge Washington state destination-based sales tax on everything shipped to a Washington address."
+dependencies[] = uc_taxes
+dependencies[] = uc_store
+dependencies[] = uc_order
+package = "Ubercart - extra"
+version = "6.x-1.7"
+core = 6.x
+; Information added by drupal.org packaging script on 2009-04-21
+version = "6.x-1.7"
+core = "6.x"
+project = "uc_tax_wa"
+datestamp = "1240337851"
+

@@ -1,0 +1,1774 @@
+/*
+	Arcimoto CSS ~ Core CSS.
+	Please read the privacy policy and terms of use at http://www.arcimoto.com
+	All rights reserved.
+*/
+body {
+  color: #333;
+  font-family: "Lucida Sans Unicode","Lucida Grande", Verdana, Arial, sans-serif;
+  font-size: 0.75em; /* = 12px */
+  line-height:1.5em;
+}
+
+
+a, a:active, a:visited {
+  text-decoration: none;
+  color: #0275A7;
+}
+
+a:hover {
+  text-decoration: underline;
+  color: #24aae1;
+}
+
+h1 {
+  font-family:  "Lucida Sans Unicode","Lucida Grande", Verdana, Arial, sans-serif;
+  font-weight: 400;
+  text-align: center;
+}
+
+h2 {
+  padding: 20px 0 0;
+  text-align: left;
+}
+
+div.box,
+p { margin:0px 0px 20px; }
+
+hr { display:none; }
+
+
+#content dl dt {}
+#content dl dd,
+#content dl dl {
+  margin-left:20px;
+  margin-bottom:10px;
+  }
+
+
+/**
+ * Tables =============================================================
+ */
+table {
+  width:100%;
+  font-size:11px;
+  margin:0px 0px 10px;
+  background-color:#fcfcfc;
+}
+
+table.system-status-report th,
+table td,
+table th {
+  vertical-align:middle;
+  border:1px solid #ddd;
+  padding:5px;
+}
+
+  table.system-status-report th { padding-left:30px; }
+
+table th {
+  font-size:9px;
+  text-transform:uppercase;
+  background-color:#eee;
+}
+
+table tr.odd { background-color:#fff; }
+table tr.even { background-color:#fcfcfc; }
+
+table td.active { background-color:#e4f0f8; }
+table tr.odd td.active { background-color:#ecf8fc; }
+
+table tr.selected td.active,
+table tr.selected td {
+  background-color:#ffc;
+  border-color:#eeb;
+}
+
+
+/**
+ * Common elements ============================================================
+ */
+
+
+.left, .align-right {
+  float: left;
+}
+
+.right, .align-right  {
+  float: right;
+}
+
+img.right, .the-journey img.imagecache, .main_display img  {
+  float: right;
+  padding: 2px;
+  margin: 0 0 6px 6px;
+  border: 1px solid #DBEAEE;
+}
+
+.footnote {
+  color: #ddd;
+  font-size: 0.75em;
+}
+
+
+/**
+ * Forms ==============================================================
+ */
+
+div.form-item {
+  padding:9px;
+  margin:0px 0px 10px;
+  /*border:1px solid #ccc;*/
+  }
+
+div.teaser-checkbox div.form-item,
+div.form-item div.form-item,
+div.fieldset div.form-item {
+  padding:5px 0px;
+  margin:0px;
+  border:0px;
+  }
+
+#content div.fieldset h2.fieldset-title,
+div.form-item label {
+  margin:0px;
+  padding:0px;
+
+  font-weight:normal;
+  font-size:11px;
+  text-transform:uppercase;
+  }
+
+  div.form-item label.option { text-transform:none; }
+
+div.form-item label.option { font-size:11px; }
+div.form-item label.option input { vertical-align:middle; }
+
+
+div.description,
+div.form-item div.description {
+  margin:5px 0px;
+  line-height:15px;
+  font-size:11px;
+  color:#666;
+  }
+
+input.teaser-button,
+input.form-submit {
+  cursor:pointer;
+  padding:2px 10px;
+  color:#333;
+
+  text-align:center;
+
+  font-weight:normal;
+  font-family:"Lucida Grande",Verdana,sans-serif;
+
+  border:1px solid #eee;
+  border-bottom:1px solid #ccc;
+  background:url(images/sprite.png) 0px -40px repeat-x;
+
+  -moz-border-radius:20px;
+  -webkit-border-radius:20px;
+  }
+
+  div.node-form input#edit-submit {
+    border:1px solid #cef;
+    border-left-color:#bdf;
+    border-right-color:#bdf;
+    border-bottom-color:#9bd;
+    background:url(images/sprite.png) 0px -80px repeat-x;
+    }
+
+  input.form-submit:active {
+    background:#666;
+    color:#fff;
+    border-color:#555;
+    text-shadow:#222 0px -1px 0px;
+    }
+
+  /* Teaser splitter */
+  div.teaser-button-wrapper { padding:5px 5px 0px; }
+  input.teaser-button { font-size:11px; }
+
+form div.buttons {
+  clear:both;
+  padding:10px 0px;
+  }
+
+  form div.form div.buttons { border-width:1px 0px 0px; }
+
+  form input#edit-delete {
+    background:#eee;
+    border-color:#fff #ddd #ccc;
+    text-shadow:none;
+    color:#999;
+    }
+
+input.form-autocomplete,
+input.form-text,
+textarea.form-textarea,
+select.form-select {
+  padding:2px;
+  border:1px solid #ccc;
+  border-top-color:#999;
+  background:#fff;
+  color:#333;
+  }
+
+  input.form-text:focus,
+  textarea.form-textarea:focus,
+  select.form-select:focus {
+    color:#000;
+    border-color:#ace;
+    }
+
+  html.js input.form-autocomplete { background-position:100% 7px; }
+  html.js input.throbbing { background-position:100% -13px; }
+
+  /* Exceptions */
+  #diff-inline-form select,
+  #content div.filter-options select { padding:0px; }
+
+
+/* Fieldsets */
+div.fieldset {
+  border:1px solid #ccc;
+  padding:4px 9px;
+  margin:0px 0px 10px;
+
+  background:#f8f8f8;
+  }
+
+  div.fieldset div.fieldset { background:#fff; }
+  div.fieldset div.fieldset div.fieldset { background:#f8f8f8; }
+
+  div.collapsed div.fieldset-content { display:none; }
+
+
+/**
+ * Tabs ===============================================================
+ */
+ul.tabs { font-size:11px; }
+
+  ul.tabs li {
+    float:left;
+    padding-right:1px;
+    margin-left: 0;
+    margin-bottom: -1px;
+    }
+  
+  ul.tabs li.active {
+    }
+
+  ul.primary {
+    line-height:20px;
+    float:left;
+    width: 97%;
+    }
+
+  ul.primary li a {
+    text-transform:uppercase;
+
+    color:#333;
+    background:#ddd;
+
+    -moz-border-radius-topleft:5px;
+    -moz-border-radius-topright:5px;
+    -webkit-border-top-left-radius:5px;
+    -webkit-border-top-right-radius:5px;
+    }
+
+  ul.tabs li a,
+  ul.tabs li a:hover,
+  ul.tabs li.active a,
+  ul.tabs li.active a.active {
+    float:left;
+    padding:0px 15px;
+    }
+
+  ul.tabs li a:hover { background:#eee; }
+  ul.primary li.active a,
+  ul.primary li.active a.active { background:#fff; }
+
+ul.secondary {
+  float:none;
+  clear:both;
+  font-size:11px;
+  padding:5px 5px 4px;
+  line-height:20px;
+  overflow:hidden;
+  border-bottom:1px solid #ccc;
+  background:#fff;
+  }
+
+ul.secondary li {
+  border-right: 0 none;
+  padding: 0;
+  }
+
+ul.secondary li a { color:#05a; }
+
+ul.secondary li a,
+ul.secondary li a:hover,
+ul.secondary li.active a,
+ul.secondary li.active a.active {
+  padding:0px 10px;
+  -moz-border-radius:10px;
+  -webkit-border-radius:10px;
+  }
+
+ul.secondary li.active a,
+ul.secondary li.active a.active {
+  color:#fff;
+  background:#666;
+  border-bottom: 0 none;
+  }
+
+    
+/**
+ * Node forms =========================================================
+ */
+div.node-form div.left {
+  float:left;
+  }
+
+div.node-form div.right {
+  float:right;
+  }
+
+div.node-form div.right div.buttons {
+  background:#ddd;
+  padding:9px;
+  margin:0px 0px 10px;
+  border:1px solid #ccc;
+  }
+
+div.node-form div.right div.form-item {
+  padding:10px 0px 9px;
+  margin:0px;
+  border:0px;
+  border-bottom:1px solid #ccc;
+  }
+
+div.node-form div.main { padding-right:20px; }
+
+
+/**
+ * 960 edits ============================================================
+ */
+li {
+}
+
+ul,p {
+  margin-bottom: 0.5em;
+}
+
+fieldset {
+  border: 1px solid #eee;
+  padding: 5px;
+}
+
+
+
+/**
+ * Drupal Common Elements ============================================================
+ */
+
+
+
+/* draggable tables */
+
+/**
+ * Logo and site title ============================================================
+ */
+#logo {
+  margin: 30px 0 2px -14px;
+  padding: 0;
+  height: 32px;
+  width: 330px;
+}
+
+.site_title {
+  float: right;
+  margin: 0;
+  padding: 0;
+  text-indent: -9999em;
+}
+
+/* ---- End Logo ---- */
+
+
+
+/**
+ * User box ============================================================
+ */
+#user_box {
+  background: transparent url(images/user_box.png) no-repeat scroll center top;
+  width: 340px;
+  height: 45px;
+}
+
+#user_box_container {
+  position: relative;
+  width: 335px;
+  height: 38px;
+  margin: 0 auto;
+  padding: 2px 8px;
+}
+
+h3#join_movement_image {
+  margin: 4px 8px;
+  width: 111px;
+  height: 26px;
+  text-indent: -9999em;
+  background: transparent url(images/join_movement.png) no-repeat scroll center top;
+  
+}
+
+#user_box_container img {
+  padding: 4px 8px;
+}
+
+#user_box form {
+  display: inline;
+  position: absolute;
+  top: 8px;
+  right: 30px;
+}
+
+#join_email {
+  float: left;
+  position: relative;
+  left: -10px;
+}
+
+#join_email_field {
+  width: 10em;
+}
+
+input#join_email_submit_button {
+  position: relative;
+  background: transparent url(images/user_box_submit_button.png) no-repeat scroll left top;
+  top: -3px;
+  width: 35px;
+  height: 23px;
+  display: block;
+}
+
+a#join_email_submit_button {
+  float: right;
+  position: relative;
+  background: transparent url(images/user_box_submit_button.png) no-repeat scroll left top;
+  top: 0;
+  width: 35px;
+  height: 20px;
+  display: block;
+  text-indent: -9999em;
+}
+
+a#join_email_submit_button:hover {
+  background-position: left bottom;
+}
+
+label.overlabel-apply {
+  color: #999999;
+  left: 5px;
+  position: absolute;
+  top: 3px;
+  z-index: 1;
+}
+
+
+/* ---- End User Box ---- */
+
+/**
+ * Navigation ============================================================
+ */
+#navigation {
+  height: 37px;
+}
+
+#navigation ul {
+  float: left;
+  margin-top: 10px;
+  margin-bottom: 5px;
+  padding: 0;
+}
+
+#navigation li {
+  float: left;
+  margin: 0 24px 0 0;
+  padding-right: 0;
+  padding-left: 0;
+  text-indent: -9999em;
+  text-transform: uppercase;
+}
+
+#navigation li a {
+  display: block;
+  height: 22px;
+  background-repeat: no-repeat;
+  background-position: top left;
+}
+
+#navigation li a:hover {
+  background-position: left bottom;
+}
+
+#navigation a.the-vehicle {
+  background-image: url(images/nav-vehicle.png);
+  width: 98px;
+}
+
+#navigation a.the-community {
+  background-image: url(images/nav-community.png);
+  width: 127px;
+}
+
+#navigation a.the-answers {
+  background-image: url(images/nav-answers.png);
+  width: 108px;
+}
+
+#navigation a.the-team{
+  background-image: url(images/nav-team.png);
+  width: 75px;
+}
+
+#navigation a.the-journey {
+  background-image: url(images/nav-journey.png);
+  width: 106px;
+}
+
+#navigation a.active, #navigation .active-trail a, #navigation .active a {
+  background-position: bottom;
+}
+
+#searchbox {
+  background-image: url(images/nav_searchbar_icon.jpg);
+  background-position: 0 center;
+  background-repeat: no-repeat;
+  height: 14px;
+  margin-top: -1px;
+  padding-left: 13px;
+  width: 101px;
+}
+
+#search_button {
+  margin-left: -14px;
+}
+
+
+
+/* ---- End Navigation ---- */
+
+
+
+/**
+ * Sub navigation ============================================================
+ */
+.sub_navigation {
+  border: 1px solid #DBEAEE;
+  border-top: 0px;
+  margin-bottom: 1em;
+  margin-top: -1em;
+  background-color: #f7f7f7;
+  -moz-border-radius-bottomleft: 8px;
+  -webkit-border-bottom-left-radius: 8px;
+  -moz-border-radius-bottomright: 8px;
+  -webkit-border-bottom-right-radius: 8px;
+}
+#sub_navigation {
+}
+
+#sub_navigation li {
+  float: left;
+  font-size: 0.9em;
+  margin: 0;
+  padding: 0.8em 0;
+}
+
+#sub_navigation li a {
+  text-transform: uppercase;
+  padding: 0.8em 1.2em;
+}
+
+#sub_navigation li.first a {
+  /*padding-left: 0;*/
+}
+
+#sub_navigation li a,.post_comments a {
+  color: #666;
+}
+
+#sub_navigation li a:hover {
+  color: #24aae1;
+  text-decoration: underline;
+}
+
+#sub_navigation li a.active {
+  color: #24aae1;
+  text-decoration: underline;
+}
+
+/* override drupal default (which makes this black) */
+li a.active {
+  color: #0275A7;
+}
+ul.primary li.active a:hover {
+  background-color: #fff;
+  border-bottom-color: #fff;
+}
+
+
+
+/* ---- End Sub Navigation ---- */
+
+
+
+
+
+
+
+/**
+ * Console ============================================================
+ */
+#console div.messages {
+  padding:9px;
+  margin:0 12px 20px 12px;
+
+  color:#036;
+  background:#bdf;
+  border:1px solid #ace;
+  }
+
+#console div.warning {
+  color:#840;
+  background:#fe6;
+  border-color:#ed5;
+  }
+
+#console div.error {
+  color:#fff;
+  background:#e63;
+  border-color:#d52;
+  }
+
+#console div.status {
+  color:#360;
+  background:#cf8;
+  border-color:#be7;
+  }
+
+
+
+/**
+ * Normal page branding ============================================================
+ */
+#branding_small {
+  height: 75px;
+  width: 100%;
+  background: #000 url(images/branding-bg-small.jpg) no-repeat scroll center top;
+  color: #e0dfdf;
+}
+
+#title_header .title {
+  padding: 1em;
+}
+
+#title_header div.header {
+  font-size: 3em;
+  text-align: left;
+  padding: 0.3em 0 0.3em 0em;
+  margin-bottom: 0;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  font-weight: 800;
+}
+
+
+
+/**
+ * Main container ============================================================
+ */
+
+#main_container{
+  padding-top: 1em;
+  padding-bottom: 2em;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+
+#body {
+}
+
+
+
+/**
+ * Landing page - branding ============================================================
+ */
+ 
+#branding {
+  height: 350px;
+  width: 100%;
+  background: #000 url(images/branding-bg.jpg) no-repeat scroll center top;
+  color: #e0dfdf;
+}
+
+#branding .content {
+  width: 960px;
+  margin: 0 auto;
+  padding: 0;
+  position: relative; /* to make the image div not affect the grid spacing */
+}
+
+#branding #branding_image {
+  width: 722px;
+  height: 350px;
+  margin: 0 0 0 -132px;
+  padding: 0;
+  position: absolute; /* to make this div not affect the grid spacing */
+}
+
+#branding #branding_image_2 {
+  width: 722px;
+  height: 350px;
+  margin: 0 0 0 -132px;
+  padding: 0;
+  position: absolute; /* to make this div not affect the grid spacing */
+}
+
+#branding #branding_blurb {
+  padding: 1em;
+}
+
+#branding #branding_blurb h2{
+  text-indent: -9999em;
+  height: 100px;
+  padding: 0;
+  margin: 0.25em auto 0.5em;
+}
+
+#branding .branding-vehicle h2 {
+  background: transparent url(images/branding-header-vehicle.png) no-repeat scroll center center;
+}
+
+#branding .branding-team h2 {
+  background: transparent url(images/branding-header-company.png) no-repeat scroll center center;
+}
+
+#branding #branding_blurb{
+  font-size: 1.166em;
+  line-height: 1.7em;
+}
+
+#branding #branding_blurb .action_link {
+  float: right;
+  font-size: 1.4em;
+  text-transform: uppercase;
+  margin-top: 0.5em;
+}
+
+#branding #branding_blurb a,
+#branding #branding_blurb a:hover,
+#branding #branding_blurb a:active,
+#branding #branding_blurb a:visited {
+  color: #0275A7;
+}
+
+
+
+/**
+ * Land page - upper branding area ============================================================
+ */
+
+#branding_upper_bar .branding-block {
+  margin-bottom: 1em;
+}
+
+
+.main_display {
+  background: #FCFCFC url('images/main_box_bg.gif') repeat-x top left;
+  /*border: 1px solid #b5d9ed;*/
+  padding: 0.6em;
+  overflow: auto;
+}
+
+.main_display_text {
+}
+
+.main_display_text li {
+  margin-left: 10px;
+  padding-bottom: 3px;
+}
+
+
+.main_display h3 {
+  font-family: 	"Lucida Sans Unicode","Lucida Grande",Verdana,Arial,sans-serif;
+  font-size: 1.3em; /* 18.2px */
+  line-height: 1;
+  margin: 0 0 0.5em 0;
+  padding-bottom: 0;
+  text-transform: uppercase;
+  font-weight: bold;
+  text-align: center;
+}
+
+.main_display .content {
+  border: none;
+  font-size: 1em; /* =12px */
+  line-height: 1.5em;
+  margin: 0;
+  padding: 5px;
+  text-align: justify;
+}
+
+.main_display .button_container {
+  text-align: center;
+  margin: 0.8em 0;
+}
+
+.main_display_button {
+  bottom: 0;
+  margin: 0.8em 0;
+  height: 46px;
+ /* position: absolute;*/
+  width: 146px;
+  display: inline;
+  
+}
+
+.blue_button a {
+  /*border: 1px solid #c1bfbf;*/
+  background-color: #0275A7;
+  color: #FFF;
+  display: block;
+  text-decoration: none;
+  font-size: 1.2em;
+  line-height: 1.4em;
+  overflow: hidden;
+  padding: 0;
+  margin: 0 auto;
+  text-align: center;
+  text-transform: uppercase;
+  height: 46px;
+  width: 146px;
+  display: table-cell;
+  vertical-align: middle;
+   -moz-border-radius: 8px;
+   -webkit-border-radius: 8px;
+}
+
+.blue_button a:hover {
+  background-color: #62aed9;
+}
+
+
+
+
+
+
+/* ---- End Main Image ---- */
+/* ---- Main Content ---- */
+/* ---- End Main Content ---- */
+
+
+
+
+
+/**
+ * Middle branding area ============================================================
+ */
+
+
+/* Custom for the news headlines block */
+#block-views-news_headlines-block_1 {
+  clear: both;
+}
+
+#branding_middle_bar {
+  height: 46px;
+}
+
+#branding_middle_bar .main_display {
+  background: transparent none;
+  border: 1px solid #b5d9ed;
+}
+
+/* get the block to align vertically */
+#branding_middle_bar .view-content{
+  bottom:0;
+  display:inline;
+  height:44px;
+}
+
+#branding_middle_bar .views-row{
+  display:table-cell;
+  height:44px;
+  margin:0 auto;
+  overflow:hidden;
+  vertical-align:middle;
+}
+
+/* ---- End Middle branding area ---- */
+
+
+
+
+
+
+/**
+ * Lower branding area ============================================================
+ */
+div#branding_lower_bar {
+}
+
+div.secondary_box {
+  background: url(images/custom_corners_topleft.gif) top left no-repeat;
+  border: none;
+  font-size: 1em;
+  text-align: center;
+}
+
+div.secondary_box h3 {
+  background: url(images/custom_corners_topright.gif) top right no-repeat;
+  font-size: 1.3em;
+  margin: 0;
+  padding: 1em 1em 0.5em 1em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+div.secondary_box p {
+  text-align: justify;
+}
+
+div.secondary_box_body {
+  background: url(images/custom_corners_rightborder.gif) top right repeat-y;
+  margin: 0;
+  padding: 0 1.2em 1.2em 1.2em;
+  height: 250px;
+}
+
+div.secondary_box_footer p {
+  background: url(images/custom_corners_bottomright.gif) bottom right no-repeat;
+  margin: -2em 0 0;
+  padding: 12px;
+}
+
+div.secondary_box_footer {
+  background: url(images/custom_corners_bottomleft.gif) bottom left no-repeat;
+}
+
+/*div.secondary_box img {
+  border: 1px solid #666;
+  margin: 1em auto 0.8em auto;
+}*/
+
+div.secondary_box img {
+  margin:1em auto 0.8em;
+  border:1px solid #aaa;
+  /* makes a border image
+  background-color:#fafafa;
+  padding:4px;
+  */
+}
+
+.grey_button a {
+  background-color: #ccc;
+  color: #000;
+  text-decoration: none;
+  font-size: 1.1em;
+  line-height: 1.4em;
+  text-align: center;
+  text-transform: uppercase;
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+  height: 32px;
+  width: 146px;
+  display: table-cell;
+  vertical-align: middle;
+   -moz-border-radius: 8px;
+   -webkit-border-radius: 8px;
+  border: 1px solid #666;
+}
+
+.secondary_box .grey_button {
+  margin: 0 2em;
+}
+
+.grey_button a:hover {
+  background-color: #eee;
+}
+
+/* ---- End lower branding bar ---- */
+
+/**
+ * Right sidebar ============================================================
+ */
+#sidebar_right {
+
+}
+
+
+#sidebar_right .block {
+  margin-bottom: 0.5em;
+}
+
+#sidebar_right .sidebar_container {
+  background-color: #dbeaee;
+}
+
+#sidebar_right a, #sidebar_right a:active, #sidebar_right a:visited, #sidebar_right a:hover {
+  color: #0275A7;
+}
+
+
+#sidebar_right h2 {
+  font-size: 1.5em;
+  padding-top: 0.5em;
+  border-top: 1px solid #62aed9;
+}
+ 
+/* ---- End right sidebar ---- */
+
+
+
+
+/**
+ * Individual pages ============================================================
+ * =====================================================================================
+ * ===================================================
+ * =====================================================================================
+ * ===================================================
+ * =====================================================================================
+ */
+
+
+ #content_body {
+  margin-top: 15px;
+  min-height: 250px;
+ }
+ 
+
+/**
+ * Blog ============================================================
+ */
+
+
+.the-journey img.imagecache-blog_lead_image_banner {
+  float: none;
+  margin: 6px auto;
+}
+
+.the-journey .view-blog-front-page .views-field-field-lead-image-fid span.field-content, .field-field-lead-image .field-item {
+  display: block;
+  text-align: center;
+}
+
+/**
+ * Chat ============================================================
+ */
+
+ .node-124 .content {
+  text-align: center;
+}
+
+#habla_window_div {
+  position: static !important;
+  margin: 0 auto !important;
+  width: 400px;
+}
+
+#habla_window_div .habla_panel_border {
+   font-family: "Lucida Sans Unicode","Lucida Grande", Verdana, Arial, sans-serif;
+}
+
+
+/* block the "Powered by Olark" link*/
+/*#habla_expanded_div div {
+  display: none;
+}
+#habla_expanded_div div#habla_middle_div, #habla_expanded_div div#habla_middle_div div{
+  display: block;
+}*/
+
+#habla_closebutton_a, #habla_sizebutton_a {
+  display: none;
+}
+
+ 
+
+/**
+ * Ubercart edits ============================================================
+ */
+.solid-border {
+  padding: 0;
+  border: 0 none;
+}
+
+#checkout-form-bottom input#edit-continue {
+  border:1px solid #cef;
+  border-left-color:#bdf;
+  border-right-color:#bdf;
+  border-bottom-color:#9bd;
+  background:url(images/sprite.png) 0px -80px repeat-x;
+  }
+  
+#gtct_pane {
+  background-color: #fff;
+}
+
+
+/**
+ * Forums ============================================================
+ */
+#forum tr td.forum {
+  background-image: none;
+}
+ 
+.forum-post-panel-main  {
+  min-height: 100px;
+}
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+/*
+#main_content_splash {
+  background-color: #000;
+  height: 361px;
+  width: 100%;
+}
+
+#main_content_splash_subpage {
+  background-color: #000;
+  height: 120px;
+  width: 100%;
+}
+
+#main_content_image {
+  height: 361px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 1120px;
+}
+
+#main_content_image_subpage {
+  height: 120px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 1120px;
+}
+
+.main_content_left_image {
+  background: #000;
+  float: left;
+  height: 361px;
+}
+
+#splash_vehicle {
+  background-image: url(images/splash_vehicle.jpg);
+  width: 682px;
+}
+
+#splash_company {
+  background-image: url(images/splash_company.jpg);
+  width: 697px;
+}
+
+#splash_community {
+  background-image: url(images/splash_community.jpg);
+  width: 684px;
+}
+
+#splash_answers {
+  background-image: url(images/splash_answers.jpg);
+  width: 684px;
+}
+
+.main_content_right {
+  background-image: url(images/vehicle_main_bg.jpg);
+  color: #d1d0d0;
+  float: right;
+  height: 361px;
+  padding-left: 32px;
+  width: 406px;
+}
+
+.subpage {
+  height: 120px;
+}
+
+#vehicle_right {
+  width: 406px;
+}
+
+#company_right {
+  width: 391px;
+}
+
+.main_content_right h1 {
+  margin-top: 70px;
+  text-align: left;
+}
+
+#main_content_right p {
+  font-family: "Lucida Sans Unicode", "Lucida Grande", Verdana, Arial, sans-serif;
+  font-size: 12.9px;
+  margin-top: 37px;
+}
+
+#main_content_right li {
+  float: none;
+  font-family: Blair, "Lucida Sans Unicode", "Lucida Grande", Verdana, Arial, sans-serif;
+  font-size: 14.53px;
+  list-style-type: disc;
+  margin-top: 15px;
+  text-transform: uppercase;
+}
+
+#main_content_right a {
+  color: #d1d0d0;
+  text-decoration: none;
+}
+
+#main_content_title_underline {
+  border-bottom-style: solid;
+  border-color: #adacac;
+  border-width: 3px;
+  padding-bottom: 10px;
+}*/
+
+
+
+
+
+/**
+ * Footer ============================================================
+ */
+ 
+/* ---- Footer Links ---- */
+
+#footer {
+  color: #999;
+  margin-bottom: 2em;
+  padding-top: 1em;
+  font-size: 0.9em;
+}
+
+#footer a, #footer a:hover, #footer a:active, #footer a:visited {
+  color: #999;
+}
+
+#footer a:hover {
+  color: #666;
+}
+
+#footer .footer_links li {
+  float: left;
+  margin: 0 10px 0 0;
+  padding: 0;
+  text-transform: uppercase;
+}
+
+#footer  .address p {
+  text-align: right;
+  text-transform: uppercase;
+}
+
+
+/* ---- Social Media Icons ---- */
+#footer .social_media_icons {
+  margin-top: 1.5em;
+  text-align: center;
+}
+
+#footer .social_media_icons a {
+  margin: 0 1em;
+}
+
+/* ---- End Footer ---- */
+
+
+
+
+/**
+ * Footer (2) ============================================================
+ */
+
+#footer2 {
+  color: #999;
+  margin-bottom: 2em;
+  padding-top: 0.75em;
+  font-size: 0.9em;
+}
+
+#footer2 a, #footer2 a:hover, #footer2 a:active, #footer2 a:visited {
+  color: #999;
+}
+
+#footer2 a:hover {
+  color: #666;
+}
+
+
+#footer2  ul {
+  margin-top: 1em;
+}
+
+
+#footer2  ul li {
+  padding: 0;
+  margin-top: -4px;
+  display: block;
+  margin-left: 0;
+}
+
+#footer2 #footer_links {
+  text-transform: uppercase;
+}
+
+#footer2 .address ul {
+  width: 10em;
+  margin-left: auto;
+}
+
+#footer2 .address li {
+  text-transform: uppercase;
+  text-align: right;
+}
+
+
+/* ---- Social Media Icons ---- */
+#footer2 .social_media_icons {
+  margin-top: 2em;
+  text-align: center;
+}
+
+#footer2 .social_media_icons a {
+  margin: 0 1em;
+}
+
+#footer2 .social_media_icons_2 p {
+  text-align: center;
+  text-transform: uppercase;
+}
+
+#footer2 .social_media_icons_2 li {
+  float: left;
+  width: 25%;
+  text-align: center;
+}
+
+#footer2 .social_media_icons_2 li a {
+  width: height;
+  display: block;
+  height: 48px;
+  width: 48px;
+  margin: 0 auto;
+}
+
+#footer2 .social_media_icons_2 li a:hover {
+  background-position: bottom;
+}
+
+#twitter_icon a{
+  background: transparent url(images/social_twitter_48_dual.png) no-repeat scroll center top;
+  height: 48px;
+  width: 48px;
+}
+
+#flickr_icon a{
+  background: transparent url(images/social_flickr_48_dual.png) no-repeat scroll center top;
+}
+
+#facebook_icon a{
+  background: transparent url(images/social_facebook_48_dual.png) no-repeat scroll center top;
+}
+
+#youtube_icon a{
+  background: transparent url(images/social_youtube_48_dual.png) no-repeat scroll center top;
+}
+
+/* ---- End Footer2 ---- */
+
+
+
+/* ---- Content Borders ---- */
+
+.content_border {
+  background-repeat: repeat-y;
+  border-color: #dbeaee;
+  border-left-style: solid;
+  border-left-width: 1px;
+  border-right-style: solid;
+  border-right-width: 1px;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+#blue_bottom_border {
+  background-color: #d7e8ec;
+  height: 1px;
+  width: 100%;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* ---- Community Forum ---- */
+/*#community {
+  width: 310px;
+}
+
+#community h1 {
+  float: left;
+  font-family: "Lucida Sans Unicode","Lucida Grande", Verdana, Arial, sans-serif;
+  font-size: 18px;
+  height: 11px;
+  margin-bottom: 9px;
+  margin-left: 20px;
+  text-align: left;
+}
+
+#community_image {
+  background-image: url(images/community_image.jpg);
+  height: 132px;
+  margin-top: 11px;
+  width: 253px;
+}*/
+
+/* Company Page Event / News Display */
+/*.company_display {
+  border-color: #bcdcef;
+  border-style: solid;
+  border-width: 1px;
+  font-family: "Lucida Sans Unicode","Lucida Grande", Verdana, Arial, sans-serif;
+  margin: 8px 0 0;
+  padding: 13px 0 10px 8px;
+}
+
+#company_display_events_title,#company_display_news_title {
+  float: left;
+  text-transform: uppercase;
+}
+
+#company_display_news_content,#company_display_events_content {
+  float: left;
+  padding-left: 13px;
+}
+
+#secondary_box_company {
+  margin-top: 15px;
+}*/
+
+/* -- Community Forum -- */
+/*#community_forum_topics {
+  float: left;
+  font-family: "Lucida Sans Unicode","Lucida Grande", Verdana, Arial, sans-serif;
+  font-size: 10px;
+  height: 100px;
+  margin-left: 23px;
+  margin-top: 52px;
+  width: 180px;
+}
+
+#community_forum_topics li {
+  margin-bottom: 8px;
+}
+
+.community_forum_meta {
+  color: #a8a4a4;
+  font-style: italic;
+}*/
+
+/* -- Arcimoto Carousel -- */
+/*.arcimoto_carousel {
+  float: left;
+  height: 100px;
+  margin-left: 20px;
+  margin-top: 50px;
+  width: 300px;
+}*/
+
+/* -- FAQ -- */
+/*#faq h1 {
+  margin-left: 30px;
+  text-align: left;
+}*/
+
+/* -- Subpage -- */
+/*#subpage_container_margin {
+  margin: 53px 0 66px;
+}
+
+#subpage_main {
+  background-image: url(images/subpage_vehicle_bg.jpg);
+  float: left;
+  width: 602px;
+}
+
+#subpage_main h1 {
+  text-transform: uppercase;
+}
+
+#subpage_main li {
+  list-style: disc;
+  margin-bottom: 12px;
+}
+
+#subpage_content {
+  margin: 0 41px 0 61px;
+  padding-bottom: 66px;
+  width: 497px;
+}
+
+#subpage_menu {
+  float: left;
+  width: 338px;
+}
+
+.subpage_menu_photo {
+  border: solid #000 1px;
+  height: 174px;
+  margin: 0 auto 21px;
+  width: 277px;
+}
+
+#vehicle1 {
+  background-image: url(images/vehicle1.jpg);
+}
+
+#vehicle2 {
+  background-image: url(images/vehicle2.jpg);
+}*/
+
+/* -- The Journey -- */
+/*.post_author {
+  color: #788287;
+  font-style: italic;
+  margin-bottom: 16px;
+}
+
+.post_meta {
+  margin-top: 11px;
+}
+
+#mainpost_image {
+  background-image: url(images/mainpost_image.jpg);
+  border: solid #6c6a6b 1px;
+  height: 300px;
+  position: relative;
+  width: auto;
+}
+
+#mainpost_image_overlay {
+  background-color: #000;
+  bottom: 0;
+  color: #FFF;
+  filter: alpha(opacity=60);
+  height: 24px;
+  opacity: .6;
+  position: absolute;
+  text-align: center;
+  width: 661px;
+}
+
+#mainpost_image_overlay p {
+  margin: 4px 0 0;
+}
+
+#blogcontainer {
+  margin: 0 auto;
+  width: 663px;
+}
+
+#leftsubposts {
+  float: left;
+  width: 290px;
+}
+
+#rightsubposts {
+  float: right;
+  width: 290px;
+}
+
+#subpost_divider {
+  float: left;
+  width: 83px;
+}
+
+#subpost_divider_bar {
+  background-image: url(images/subpost_divider_bar.jpg);
+  height: 347px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 2px;
+}
+
+#blogwrapper {
+  background-image: url(images/blogcontainer_background.jpg);
+  background-repeat: repeat-y;
+  height: auto;
+  padding: 50px 0 0;
+  width: 100%;
+}
+
+.whosblogging li {
+  border: solid #000 1px;
+  float: left;
+  height: 91px;
+  margin-bottom: 11px;
+  width: 71px;
+}
+
+.subpage_blogger {
+  border: solid #000 1px;
+  height: 92px;
+  margin: 0 auto;
+  width: 71px;
+}
+
+#subpage_blogger_name p {
+  text-align: center;
+  text-transform: uppercase;
+}
+
+#subpage_blogger_bio p {
+  margin: 10px 0 0;
+  text-align: justify;
+}
+
+.leftimage {
+  margin-right: 14px;
+}
+
+.post_date {
+  font-size: 34px;
+}
+
+.post_title {
+  font-size: 10.78px;
+  text-transform: uppercase;
+}
+
+.post_content,.post_readmore,.post_comments {
+  line-height: 24px;
+}
+
+.post_content {
+  color: #55585a;
+}
+
+#viewmoreposts a {
+  color: #000;
+  font-style: italic;
+}
+
+#line {
+  background: #fff url(images/hr_bg.jpg) no-repeat center bottom;
+  height: 2px;
+  margin: 8px auto 26px;
+}
+
+#katie {
+  background-image: url(images/blogger_katie.jpg);
+}
+
+#eric {
+  background-image: url(images/blogger_eric.jpg);
+}
+
+#guestblogger1 {
+  background-image: url(images/blogger_1.jpg);
+}
+
+#guestblogger2 {
+  background-image: url(images/blogger_2.jpg);
+}
+
+
+.main_display h2,div.secondary_box_body h2 {
+  font-family: "Lucida Sans Unicode", "Lucida Grande", Verdana, Arial, sans-serif;
+  font-size: 10px;
+  margin: 0;
+  padding: 12px 0 14px;
+}
+
+#questions_text,#password {
+  margin-top: 10px;
+}
+
+#community_right,#answers_right {
+  width: 404px;
+}
+
+#savings,#vehiclespecs,#fleetsales,#questions,#teaser_youtube {
+  background-image: none;
+  height: 0;
+  width: auto;
+}
+
+#readmore,#teaser_twitter,#teaser_evnews {
+  text-align: left;
+}
+
+.tweet_meta,.tweet_meta a {
+  color: #b6b6b6;
+}
+
+#categories,#recententries,#bloggerentries,#tagcloud {
+  margin: 23px 0 0;
+}
+
+.post_content a,.post_readmore a,.post_comments a,.post_title a,.post_date a,.post_author a,.post_readmore a {
+  color: #000;
+}*/
+
+
+
+/* ---- Sidebar for development ---- */
+#dev_popout_sidebar {
+  position: absolute;
+  top: 0;
+  left: -190px;
+  background-color: transparent;
+  padding: 10px;
+  height: 100%;
+  width: 220px;
+  margin-top: 40px;
+  filter:alpha(opacity=0);
+  opacity: 0;
+  -moz-opacity:0;
+}
+
+#dev_popout_sidebar:hover{
+  left: 0;
+  background-color: rgba(255, 255, 255, 0.8);
+  filter:alpha(opacity=100);
+  opacity: 1;
+  -moz-opacity:1;
+}

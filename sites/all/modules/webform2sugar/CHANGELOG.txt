@@ -1,0 +1,12 @@
+Below is a list of changes that were made.
+
+-- Gave own database so no clashing between sugarwebform and webform2sugar modules.
+-- Rid the need to hack webform_submissions.inc
+-- used drupal_http_request instead of PHP fsockopen
+-- Added a setting to choose which SugarCRM version is being used. This is used later to decide if other parameters should be pushed to Sugar.
+-- Added the option 'Do not map', to remove bindings to SugarCRM.
+
+6.3.0-beta2:
+Fixed some bugs, including:
+-Multiple address lines now working correctly
+-Multiple descriptions handling

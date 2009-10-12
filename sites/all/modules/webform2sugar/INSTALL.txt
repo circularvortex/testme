@@ -1,0 +1,19 @@
+Requirements
+------------
+Drupal 6.x, SugarCRM 5.1 and higher  
+
+Installation
+------------
+1. Copy the sugarwebform directory to the Drupal modules directory for your site
+
+2. Login as an administrator. Enable the module in the "administer" -> "build" -> "modules"
+
+3. Configure your SugarCRM settings in the "administer" -> "site configuration" -> "SugarCRM Webform" (admin/settings/webform2sugar)
+
+4. Get SugarCRM Campaign ID: The easiest way to do that is to go to SugarCRM, create a campaign, then look at the url in your address bar, and copy the parameter value for "&record=". The value pattern looks like xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+
+5. Create a webform: Make / edit your webform and fill in your Campaign ID (from step 4) in the SugarCRM Setting section of your webform.
+ 
+6. Add webform fields (form components)
+
+7. Map webform fields to SugarCRM: Once you have added all your webform fields (step 6) go back and edit each field (currently thi is the only way to map fields). At the bottom of the form you will see Advanced Settings. Select which SugarCRM field you want to map the webform field to in the "administer" -> "Webforms" -> "edit" -> "form components" -> "Edit" -> "Advanced settings". Make sure you filled in the Campaign ID first (step 5), else this dropdown button doesnt appear.

@@ -1,0 +1,297 @@
+<?php 
+
+
+function webform2sugar_submit_form($form_id, &$values){
+	$form_values = $values['values'];
+
+	$result = db_query("SELECT campaign, sugar_user, lead_source from {webform2sugar} WHERE vid = %d", $form_values['details']['nid']);
+	$row = db_fetch_array($result);
+	$campaignID = $row['campaign'];
+	
+	// build the URI
+	$sugarDir = variable_get('sugarcrm_dir',null);
+	if(!empty($sugarDir)){
+		$sugar_uri = '/' . $sugarDir . '/index.php?entryPoint=WebToLeadCapture';
+	}else{
+		$sugar_uri = '/index.php?entryPoint=WebToLeadCapture';	
+	}
+	$sugarURL = strstr("http://", variable_get('sugarcrm_url',null)) ? variable_get('sugarcrm_url',null) : 'http://' . variable_get('sugarcrm_url',null);
+  $url =  $sugarURL . $sugar_uri;
+	
+	// combine the sugar parameters
+	$combine = '';
+	$combine .= webform2sugar_flatten_form($form_values['submitted_tree']);
+	$combine .= empty($form_values['submitted_tree']['last_name']) ? '&last_name=empty' : $combine['last_name'];
+	$combine .= '&campaign_id=' . $campaignID;
+	$combine .= variable_get('sugarcrm_version', 0) == 1 ? '&team_id=1' : '';
+	$data = ltrim($combine,'&');
+	
+
+	// send off to sugar
+  if ($url){
+		//drupal_http_request($url, $headers = array(), $method = 'GET', $data = NULL, $retry = 3)
+    $result = drupal_http_request($url,array('Content-Type'=>'application/x-www-form-urlencoded',
+																						 'User-Agent' => 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.9) Gecko/20071025 Firefox/2.0.0.9'),
+																						 'POST',$data);
+  }
+
+  if ($result->code==200){
+    $message = t('Valid response recieved from SugarCRM<br /><br />Data posted : !posted<br /><br />Content of response (an empty response is a good thing!): !response',
+                  array('!posted'=>$data,'!response'=>$result->data));
+    watchdog('SugarCRM',$message);  
+  }
+  else{
+    $message = t('Failed to send request to !url response code was !code',array('url'=>$url,'code'=>$result->code));
+    watchdog('SugarCRM',$message,WATCHDOG_ERROR);  
+  }
+}
+
+function webform2sugar_flatten_form($values){
+
+	include_once(drupal_get_path('module', 'webform2sugar') . "/webform2sugar_fields.inc");
+	
+	$descriptions = '';
+	$addresses='';
+	foreach($values as $key => $value){
+		if(array_key_exists($key, $webform2sugar_available_fields) && $key!='none'){
+			if (is_array($value)){
+				$data .= webform2sugar_flatten_form($value);
+			}
+			else {
+				//Special treathment for addresses. This enables multiple adddresslines in forms combined to one addressfield in SugarCRM.
+				if (strstr($key,'primary_address_street')){				
+					$addresses .= $value.' ';
+				}
+				//Special treathment for Descriptions. This enables multiple descriptions in forms combined to one description in SugarCRM.
+				else if (strstr($key,'description')){				
+					$descriptions .= $value.' ';
+				}
+				//Normal treathment
+				else {
+					$data .= '&'.$key.'='.urlencode($value);
+				}
+			} //end else
+		} //end if
+	}  // end for each
+	
+  //If there are (combined)addresses, add them to the output
+  if ($addresses!=''){
+  	//SugarCRM removes the first letter of the address if it is not uppercase. So make it uppercase.
+  	$data .= '&primary_address_street='.urlencode(ucfirst($addresses));
+  }
+  
+  //If there are (combined) descriptions, add them to the output
+  if ($descriptions!=''){
+  	$data .= '&description='.urlencode($descriptions);
+  }
+  return $data;
+}
+
+function webform2sugar_form_alter(&$form, $form_state, $form_id) {
+	
+
+	// handle webform client forms (instances of webforms that are submitted)	
+	// webform names client forms with the pattern web_form_client_form_$nid, use this knowledge to
+	// manipulate the forms that webform displays
+	if ( ereg('^webform_client_form_', $form_id) ) {		
+
+		global $base_url;
+		// debug output shows that the node is the third parameter -- fragile but the only way we can access it
+		$node = $form['#parameters'][1];
+		
+		// only deal with this form if it is supposed to go to sugar
+		if (variable_get('sugarcrm_url', '') && variable_get('sugarcrm_dir',null)) {
+				$form['#submit']['webform2sugar_submit_form'] = 'webform2sugar_submit_form';
+		}
+
+		// all leads coming from this form should be treated as new on the SugarCRM side
+		$form['status'] = array(
+      '#type' => 'hidden',
+      '#value' => 'New',
+    );
+		
+		// if the form requests the full name from the user, we need to let the lead capture
+		// script know to split it into first and last names
+		if ( isset($form['submitted']['name']) ) {
+			$form['_splitName'] = array(
+	      '#type' => 'hidden',
+	      '#value' => 'yes',
+	    );
+		}
+		
+		// Since SugarCRM by default only looks for an Opt-out, we need to make sure that we
+		// set a positive Opt-Out in the event of the user not electing to Opt-in.  
+		if ( isset($form['submitted']['email_opt_in'])) {
+			// add it to the submitted fieldset for consistency with when the user adds an 
+			// Opt-Out field directly
+			$form['submitted']['email_opt_out'] = array(
+	      '#type' => 'hidden',
+	      '#value' => 'yes',
+	    );
+		}
+
+		// use the redirect/confirmation data from the original web form to tell SugarCRM where
+		// to redirect the user this is the same logic that the client_form_submit function 
+		// uses to determine whether or not to redirect
+	  if (valid_url(trim($node->confirmation), true)) {
+	    $redirect = trim($node->confirmation);
+	  }
+	  elseif (preg_match('/^internal:/', $node->confirmation)) {
+	    $path = preg_replace('/^internal:/', $base_url .'/', $node->confirmation);
+	    $redirect = trim($path);
+	  }
+	  else {
+			// create an absolute URL for the SugarCRM lead capture page to send the user back to
+	    $redirect = url('node/'. $node->nid .'/done', array('absolute' => true));
+	  }
+	
+    $form['redirect'] = array(
+      '#type' => 'hidden',
+      '#value' => $redirect,
+    );
+	}
+	
+	// handle editing of webform nodes
+  elseif ( $form_id == 'webform_node_form' ) {		
+		
+		  // Collapse the email info on the page assuming that it is going to be a SugarCRM form //
+		  $form['webform']['mail_settings']['#collapsed'] = TRUE;
+
+		  // Start SugarCRM Settings Form //
+		  $sugar_form['sugarsettings'] = array(
+		    '#type' => 'fieldset',
+		    '#title' => t('SugarCRM Settings'),
+		    '#collapsible' => TRUE,
+		    '#collapsed' => FALSE,
+		    '#weight' => -2,
+		  );
+	
+
+			$result = db_query("SELECT campaign, sugar_user, lead_source from {webform2sugar} ".
+							 "WHERE vid = %d", $form['#node']->webform['nid']); 
+	// either there is 0 or 1, if we have one then add it to the node
+	$row = db_fetch_array($result);
+
+		  $sugar_form['sugarsettings']['sugarcrm_campaign'] = array(
+		    '#type' => 'textfield',
+		    '#title' => t('Campaign ID'),
+		    '#default_value' => empty($row['campaign']) ? '' : $row['campaign'],
+		    '#description' => t('The campaign ID in SugarCRM'),
+		  );
+
+
+		  // integrate the sugar form into the form
+			$webform_fieldset = $form['webform'];
+		  $pos = array_search('mail_settings', array_keys($webform_fieldset)) + 1;
+		  $form['webform'] = array_merge(array_slice($webform_fieldset, 0, $pos), $sugar_form, array_slice($webform_fieldset, $pos));
+	}
+		
+	// handle editing fields on the webform
+	elseif ( $form_id = 'webform_component_edit_form' ) {
+		// debug output shows that the node is the third parameter -- fragile but the only way we can access it
+		$node = $form['#parameters'][2];
+
+//Find the CampaignID 
+$result = db_query("SELECT campaign, sugar_user, lead_source from {webform2sugar} ".
+							 "WHERE vid = %d", $node->webform['nid']); 
+	// either their is 0 or 1, if we have one then add it to the node
+	$row = db_fetch_array($result);
+		
+	  if (!empty($row['campaign']) && empty($form_state['post']) && !empty($form['advanced']['form_key']) ) {
+	    include_once(drupal_get_path('module', 'webform2sugar') . "/webform2sugar_fields.inc");
+			
+			//dpr($form['advanced']);
+			$form['advanced']['#collapsed'] = 0;
+			$form['advanced']['form_key']['#title'] = 'Map field to SugarCRM';
+		  $new_form_key = array(
+				'#type' => 'select',
+				'#title' => $form['advanced']['form_key']['#title'],
+				'#multiple' => FALSE,
+				'#options' => $webform2sugar_available_fields,
+				'#description' => t('Select a SugarCRM field that this form field will map to. Last name MUST be mapped for SugarCRM.  If you switch the form to an email for this will be used as the machine readable key.'),
+				'#weight' => $form['advanced']['form_key']['#weight'],
+				'#default_value' => empty($form['advanced']['form_key']['#default_value']) ? '' : $form['advanced']['form_key']['#default_value'],
+		  ); 
+		  $form['advanced']['form_key'] = $new_form_key;
+		}else{
+			/*
+			echo 'CAMPAIGN:'.$row['campaign'].'END';
+			echo $form_state['post'];
+			echo'Settings incorrect, formkey cannot be loaded.';
+			*/
+		}
+	}
+ }
+
+/**
+ * Intercept operations on the webform node to assure that the SugarCRM fields are tracked.
+ */
+function webform2sugar_nodeapi(&$node, $op, $form = NULL, $page = NULL) {	
+	if ( $node->type == 'webform') {
+		switch ($op) {
+			case 'insert':
+			case 'update':
+					// store the SugarCRM fields
+					$result = db_query("DELETE FROM {webform2sugar} where vid = %d", $node->nid);
+					$result = db_query("INSERT INTO {webform2sugar} (vid, campaign) " .
+    					 							 "VALUES (%d, '%s')", $node->nid, $node->webform['sugarsettings']['sugarcrm_campaign']);
+				break;
+			case 'validate':
+				break;	
+			case 'load':
+
+				break;
+		}
+	}
+}
+
+/**
+ * Add menu item for administering the module.
+ */
+function webform2sugar_menu() {
+	$items['admin/settings/webform2sugar'] = array(
+		'title' => t('Webform to SugarCRM'),
+		'description' => t('Configure SugarCRM webform integration'),
+		'page callback' => 'drupal_get_form',
+		'page arguments' => array('webform2sugar_admin_settings'),
+		'access arguments' => array('access administration pages'),
+		'type' => MENU_NORMAL_ITEM
+	);
+	return $items;
+}
+
+function webform2sugar_admin_settings() {
+
+	$form['field_connection'] = array(
+		'#type' => 'fieldset',
+		'#title' => t('SugarCRM connection settings'),
+		'#description' => t('<p>Allows you to configure your connection to your SugarCRM.</p>
+												 <p>When providing your domain, do not use http:// or a / at the end.
+												 <br />When providing the SugarCRM directory, do not put / in the beginning or end.</p>'),
+	);
+	
+		  $form['field_connection']['sugarcrm_url'] = array(
+		    '#type' => 'textfield',
+		    '#title' => t('The domain location of SugarCRM?'),
+		    '#default_value' => variable_get('sugarcrm_url', ''),
+		    '#description' => t('The domain of where SugarCRM can be found. IE: www.mysite.com'),
+		    '#weight' => 0,
+		  );
+		  $form['field_connection']['sugarcrm_dir'] = array(
+		    '#type' => 'textfield',
+		    '#title' => t('The directory location of SugarCRM?'),
+		    '#default_value' => variable_get('sugarcrm_dir', ''),
+		    '#description' => t('The directory name of your SugarCRM installation. IE: sugar'),
+		    '#weight' => 10,
+		  );
+			$form['field_connection']['sugarcrm_version'] = array(
+				'#type' => 'select',
+				'#title' => t('SugarCRM version'),
+				'#options' => array(t('Sugar Community Edition'), t('Sugar Professional'), t('Sugar Enterprise')),
+				'#weight' => -10,
+				'#description' => 'What version of SugarCRM are you using?',
+				'#default_value' => variable_get('sugarcrm_version', ''),
+			);
+	
+	return system_settings_form($form);
+}

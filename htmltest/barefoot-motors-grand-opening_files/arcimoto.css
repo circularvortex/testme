@@ -1,0 +1,24 @@
+#billing-pane .address-pane-table {
+  display: none;
+
+}
+
+#maincontent #galleria-content ul.galleria li {
+  list-style-image:none;
+  list-style-position:outside;
+  list-style-type:none;
+  background: none;
+  padding: 0px;
+}
+
+
+.arcimoto-tweet-body  {
+  margin: 0px;
+}
+
+.arcimoto-tweet-info {
+  font-size: .9em;
+  margin-bottom: 10px;
+  display: block;
+  color: #999;
+}

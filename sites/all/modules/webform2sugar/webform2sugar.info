@@ -1,0 +1,10 @@
+name = Webform leads to SugarCRM
+description = Modifies the Webform module to submit to SugarCRM
+package = Other
+dependencies[] = webform
+; Information added by drupal.org packaging script on 2009-03-30
+version = "6.x-3.0-beta2"
+core = "6.x"
+project = "webform2sugar"
+datestamp = "1238407865"
+

@@ -1,0 +1,33 @@
+<?php
+
+/**
+* Install SugarCRM support for webforms.  Creates a supporting table to store the SugarCRM
+* connection information.
+*/
+function webform2sugar_install() {
+  drupal_install_schema('webform2sugar');
+}
+
+/**
+* Creates a table to store the extra webform settings to support connecting to SugarCRM
+*/
+function webform2sugar_schema() {
+  $schema['webform2sugar'] = array(
+    'fields' => array(
+      'vid'    => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
+      'campaign' => array('type' => 'varchar', 'length' => '255', 'not null' => TRUE),
+      'sugar_user' => array('type' => 'varchar', 'length' => '255', 'not null' => TRUE),
+      'lead_source' => array('type' => 'varchar', 'length' => '255', 'not null' => TRUE)
+    ),
+    'primary key' => array('vid'),
+  );
+
+  return $schema;
+}
+
+/**
+ * Remove tables on uninstall.
+ */
+function webform2sugar_uninstall() {
+	drupal_uninstall_schema('webform2sugar');
+}
