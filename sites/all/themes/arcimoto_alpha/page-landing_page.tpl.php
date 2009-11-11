@@ -43,6 +43,12 @@
     </div>
   </div>
   
+  <!-- Sub navigation for the pages -->
+  <div class="sub_navigation grid_16">
+    <?php print $sub_navigation; ?>
+  </div>
+  <!-- End the sub navigation -->
+
   <br class="clear" />
 </div>  
 <!-- End header -->
@@ -59,14 +65,6 @@
 
 <!-- restart container_16 with the addition of the page border -->
 <div class="container_16 content_border clearfix" id="main_container">
-
-  <!-- Sub navigation for the pages -->
-  <div class="sub_navigation grid_16">
-    <?php print $sub_navigation; ?>
-  </div>
-  <br class="clear" />
-  <!-- End the sub navigation -->
-
   
   <?php if($messages) : ?>
     <div id="console" class="grid_16">

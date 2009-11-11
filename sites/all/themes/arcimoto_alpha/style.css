@@ -1,4 +1,7 @@
-/* @override http://www.arcimoto.com/sites/all/themes/arcimoto_alpha/style.css?a */
+/* @override 
+	http://www.arcimoto.com/sites/all/themes/arcimoto_alpha/style.css?a
+	http://dev.arcimoto.com/sites/all/themes/arcimoto_alpha/style.css?a
+*/
 
 /*
 	Arcimoto CSS ~ Core CSS.
@@ -673,16 +676,22 @@ span#user_box_login_link a {
 /**
  * Sub navigation ============================================================
  */
+ /*
 .sub_navigation {
   border: 1px solid #DBEAEE;
-  border-top: 0px;
   margin-bottom: 1em;
   margin-top: -1em;
   background-color: #f7f7f7;
-  -moz-border-radius-bottomleft: 8px;
-  -webkit-border-bottom-left-radius: 8px;
+  -moz-border-radius: 8px;
+  -webkit-border-radius: 8px;
   -moz-border-radius-bottomright: 8px;
   -webkit-border-bottom-right-radius: 8px;
+} */
+.sub_navigation {
+  border-top: 1px solid #ABABAB;
+  margin-bottom: 1em;
+  margin-top: -1em;
+
 }
 #sub_navigation {
 }
@@ -710,12 +719,12 @@ span#user_box_login_link a {
 
 #sub_navigation li a:hover {
   color: #62aed9;
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 #sub_navigation li a.active, #sub_navigation li.active-trail a {
   color: #62aed9;
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 /* override drupal default (which makes this black) */
@@ -727,7 +736,24 @@ ul.primary li.active a:hover {
   border-bottom-color: #fff;
 }
 
+/* ---- Per-Section sub_navigation left padding ---- */
 
+body.the-vehicle .sub_navigation ul {
+	
+}
+body.the-community .sub_navigation ul {
+	padding-left: 120px;	
+}
+body.the-journey .sub_navigation ul {
+	
+}
+body.the-team .sub_navigation ul {
+	padding-left: 400px;	
+}
+body.the-answers .sub_navigation ul {
+	padding-left: 500px;
+}
+/* ---- End Per-Section sub_navigation left padding ---- */
 
 /* ---- End Sub Navigation ---- */
 
