@@ -39,7 +39,7 @@
   <?php endif; ?>
 
   <?php if ($attachment_before): ?>
-    <div class="attachment attachment-before grid_10 alpha omega">
+    <div class="attachment attachment-before grid_11 alpha omega">
       <?php print $attachment_before; ?>
     </div>
   <?php endif; ?>

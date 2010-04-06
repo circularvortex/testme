@@ -15,7 +15,7 @@
 <?php endif; ?>
 <?php foreach ($rows as $id => $row): ?>
   <?php $ninesixty_alpha = ($id%2 == 0) ? 'alpha' : 'omega'; ?>
-  <div class="<?php print $classes[$id]; ?> grid_5 <?php print $ninesixty_alpha ?>">
+  <div class="<?php print $classes[$id]; ?> <?php print $ninesixty_alpha ?>">
     <?php print $row; ?>
   </div>
 <?php endforeach; ?>

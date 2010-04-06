@@ -1,6 +1,9 @@
 /* @override 
 	http://www.arcimoto.com/sites/all/themes/arcimoto_alpha/style.css?a
 	http://dev.arcimoto.com/sites/all/themes/arcimoto_alpha/style.css?a
+	http://dev.arcimoto.com/sites/all/themes/arcimoto_alpha/style.css?j
+	http://dev.arcimoto.com/sites/all/themes/arcimoto_alpha/style.css?E
+	http://www.arcimoto.com/sites/all/themes/arcimoto_alpha/style.css?E
 */
 
 /*
@@ -8,9 +11,12 @@
 	Please read the privacy policy and terms of use at http://www.arcimoto.com
 	All rights reserved.
 */
+
+/* @group Base */
+
 body {
   color: #333;
-  font-family: "Lucida Sans Unicode","Lucida Grande", Verdana, Arial, sans-serif;
+  font-family: "Helvetica Neue", Helvetica, Verdana, "Lucida Sans Unicode","Lucida Grande", Arial, sans-serif;
   font-size: 0.75em; /* = 12px */
   line-height:1.5em;
 }
@@ -27,7 +33,7 @@ a:hover {
 
 
 h1 {
-  font-family:  "Lucida Sans Unicode","Lucida Grande", Verdana, Arial, sans-serif;
+  font-family:  "Lucida Sans Unicode","Lucida Grande", Arial, Verdana, sans-serif;
   font-weight: 400;
   text-align: center;
 }
@@ -77,9 +83,10 @@ li li li {
   margin-left: 90px;
 }
 
-/**
- * 960 edits ============================================================
- */
+/* @end */
+
+/* @group 960 Edits */
+
 li {
 }
 
@@ -89,11 +96,10 @@ fieldset {
   padding: 5px;
 }
 
+/* @end */
 
+/* @group Tables */
 
-/**
- * Tables =============================================================
- */
 table {
   width:100%;
   font-size:11px;
@@ -118,7 +124,7 @@ table th {
 }
 
 table tr.odd { background-color:#fff; }
-table tr.even { background-color:#fcfcfc; }
+table tr.even { background-color:#fafafa; }
 
 table td.active { background-color:#e4f0f8; }
 table tr.odd td.active { background-color:#ecf8fc; }
@@ -129,11 +135,9 @@ table tr.selected td {
   border-color:#eeb;
 }
 
+/* @end */
 
-/**
- * Common elements ============================================================
- */
-
+/* @group Common Elements */
 
 .left, .align-right {
   float: left;
@@ -155,14 +159,23 @@ img.right, .the-journey img.imagecache, .main_display img  {
 }
 
 .footnote {
-  color: #ddd;
+  color: #777;
   font-size: 0.75em;
 }
 
+p.footnote {
+	font-size: 0.8em !important;
+}
 
-/**
- * Forms ==============================================================
- */
+.superscript {
+	vertical-align: baseline;
+	font-size: 0.7em;
+	position: relative;
+	top: -0.6em;
+	}
+/* @end */
+
+/* @group Forms */
 
 div.form-item {
   padding:9px;
@@ -179,10 +192,11 @@ div.fieldset div.form-item {
   }
 
 #content div.fieldset h2.fieldset-title,
+#node-form div.fieldset h2.fieldset-title,
 div.form-item label {
   margin:0px;
   padding:0px;
-
+  font-family: "Lucida Grande", Lucida, Arial, sans-serif;
   font-weight:normal;
   font-size:11px;
   text-transform:uppercase;
@@ -294,10 +308,10 @@ div.fieldset {
 
   div.collapsed div.fieldset-content { display:none; }
 
+/* @end */
 
-/**
- * Tabs ===============================================================
- */
+/* @group Tabs */
+
 ul.tabs { font-size:11px; }
 
   ul.tabs li {
@@ -374,10 +388,10 @@ ul.secondary li.active a.active {
   border-bottom: 0 none;
   }
 
-    
-/**
- * Node forms =========================================================
- */
+/* @end */
+
+/* @group Node Forms */
+
 div.node-form div.left {
   float:left;
   }
@@ -402,7 +416,17 @@ div.node-form div.right div.form-item {
 
 div.node-form div.main { padding-right:20px; }
 
+/* @end */
 
+/* @group Drupal Elements */
+
+/* @group Node edit form */
+
+#node-form ul.tips {
+	font-size: 0.8em;
+}
+
+/* @end */
 
 /**
  * Drupal Common Elements ============================================================
@@ -416,10 +440,12 @@ div.node-form div.main { padding-right:20px; }
  * Logo and site title ============================================================
  */
 #logo {
-  margin: 30px 0 2px -14px;
+  margin: auto;
   padding: 0;
-  height: 32px;
-  width: 330px;
+  width: 400px;
+  height: 65px;
+  margin-top: -40px;
+  text-align: center;
 }
 
 .site_title {
@@ -431,19 +457,27 @@ div.node-form div.main { padding-right:20px; }
 
 /* ---- End Logo ---- */
 
+/* @end */
 
+/* @group User Box */
 
-/**
- * User box ============================================================
- */
 #user_box {
-  background: transparent url(images/user_box.png) no-repeat scroll center top;
+  /* background: transparent url(images/user_box.png) no-repeat scroll center top; */
   width: 340px;
   height: 45px;
+  text-align: right;
+  color: #CCC;
+}
+
+#user_box a {
+	color: #888;
+	font-family: 'Arial Narrow', 'Lucida Sans Unicode', Arial, Helvetica, sans-serif;
+	text-transform: uppercase;
 }
 
 #user_box a:hover{
   color: #333;
+  text-decoration: none;
 }
 
 #user_box_container {
@@ -556,11 +590,10 @@ span#user_box_login_link a {
   font-weight: bold;
 }
 
-/* ---- End User Box ---- */
+/* @end */
 
+/* @group Pre-order Counter */
 
-
-/* ---- Being preorder counter ---- */
 #preorder_counter_holder a, #preorder_counter_holder a:hover, #preorder_counter_holder a:visited, #preorder_counter_holder a:active {
   text-decoration: none;
   color: #666;
@@ -587,20 +620,19 @@ span#user_box_login_link a {
 }
 
 
-/* ---- End Preorder counter ---- */
+/* @end */
 
+/* @group Navigation */
 
-/**
- * Navigation ============================================================
- */
 #navigation {
   height: 37px;
 }
 
+
 #navigation ul {
   float: left;
-  margin-top: 10px;
-  margin-bottom: 5px;
+  margin-top: 0px;
+  margin-bottom: 15px;
   padding: 0;
 }
 
@@ -609,45 +641,66 @@ span#user_box_login_link a {
   margin: 0 24px 0 0;
   padding-right: 0;
   padding-left: 0;
-  text-indent: -9999em;
-  text-transform: uppercase;
+  text-indent: 0em;
+  text-transform: none;
+  font-size: 1.5em;
+  font-weight: bold;
+  
 }
+
 
 #navigation li a {
   display: block;
-  height: 22px;
-  background-repeat: no-repeat;
-  background-position: top left;
+  height: 20px;
+  color: #666;
 }
 
 #navigation li a:hover {
-  background-position: left bottom;
+	color: #0275A7;
+	text-decoration: none;
 }
 
+/*
+#navigation a.the-vision {
+  background: url(images/menubar.png) 0 0 !important;
+  width: 112px;
+}
+#navigation a.the-vision:hover {
+  background: url(images/menubar.png) 0 -20px !important;
+}
 #navigation a.the-vehicle {
-  background-image: url(images/nav-vehicle.png);
-  width: 98px;
-}
-
-#navigation a.the-community {
-  background-image: url(images/nav-community.png);
+  background: url(images/menubar.png) -142px 0 !important;
   width: 127px;
 }
-
+#navigation a.the-vehicle:hover {
+  background: url(images/menubar.png) -142px -20px !important;
+}
+#navigation a.the-community {
+  background: url(images/menubar.png) -293px 0 !important;
+  width: 123px;
+}
+#navigation a.the-community:hover {
+  background: url(images/menubar.png) -293px -20px !important;
+}
 #navigation a.the-answers {
   background-image: url(images/nav-answers.png);
   width: 108px;
 }
-
-#navigation a.the-team{
-  background-image: url(images/nav-team.png);
-  width: 75px;
+#navigation a.the-team {
+  background: url(images/menubar.png) -453px 0 !important;
+  width: 103px;
+}
+#navigation a.the-team:hover {
+  background: url(images/menubar.png) -453px -20px !important;
 }
 
 #navigation a.the-journey {
   background-image: url(images/nav-journey.png);
   width: 106px;
 }
+
+*/
+
 
 #navigation a.active, #navigation .active-trail a, #navigation .active a {
   background-position: bottom;
@@ -669,9 +722,15 @@ span#user_box_login_link a {
 
 
 
-/* ---- End Navigation ---- */
+ul.primary-links {
+	width: 500px;
+	margin: 0 250px;
 
+}
 
+/* @end */
+
+/* @group Sub Navigation */
 
 /**
  * Sub navigation ============================================================
@@ -691,17 +750,29 @@ span#user_box_login_link a {
   border-top: 1px solid #ABABAB;
   margin-bottom: 1em;
   margin-top: -1em;
-
-}
-#sub_navigation {
-}
-
-#sub_navigation li {
   float: left;
-  font-size: 0.85em;
-  line-height: 0.9em;
-  margin: 0;
-  padding: 0.8em 0;
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.sub_navigation ul{
+	clear: left;
+	float: left;
+	position: relative;
+	left: 50%;
+	text-align: center;
+}
+
+.sub_navigation ul li {
+	display: block;
+	float: left;
+	font-size: 0.85em;
+	line-height: 0.9em;
+	margin: 0;
+	padding: 0.8em 0;
+	position: relative;
+	right: 50%;
 }
 
 #sub_navigation li a {
@@ -742,13 +813,13 @@ body.the-vehicle .sub_navigation ul {
 	
 }
 body.the-community .sub_navigation ul {
-	padding-left: 120px;	
+	/* padding-left: 120px;	*/
 }
 body.the-journey .sub_navigation ul {
 	
 }
 body.the-team .sub_navigation ul {
-	padding-left: 400px;	
+	/* padding-left: 400px;	*/
 }
 body.the-answers .sub_navigation ul {
 	padding-left: 500px;
@@ -757,15 +828,10 @@ body.the-answers .sub_navigation ul {
 
 /* ---- End Sub Navigation ---- */
 
+/* @end */
 
+/* @group Console */
 
-
-
-
-
-/**
- * Console ============================================================
- */
 #console div.messages {
   padding:9px;
   margin:0 0 20px 0;
@@ -793,13 +859,9 @@ body.the-answers .sub_navigation ul {
   border-color:#be7;
   }
 
+/* @end */
 
-
-
-
-/**
- * Main container ============================================================
- */
+/* @group Container */
 
 #main_container{
   padding-top: 1em;
@@ -818,14 +880,16 @@ body.the-answers .sub_navigation ul {
 }
 
 
-/**
- * Normal page branding ============================================================
- */
+/* @end */
+
+/* @group Page Branding */
+
 #branding_small {
   height: 75px;
   width: 100%;
   /*background: #000 url(images/branding-bg-small.jpg) no-repeat scroll center top;*/
   color: #e0dfdf;
+  display: none;
 }
 
 .the-vehicle #branding_small {
@@ -867,12 +931,10 @@ body.the-answers .sub_navigation ul {
   text-indent: -9999em;
 }
 
+/* @end */
 
+/* @group Landing Page Branding */
 
-/**
- * Landing page - branding ============================================================
- */
- 
 #branding {
   height: 350px;
   width: 100%;
@@ -952,11 +1014,10 @@ body.the-answers .sub_navigation ul {
   color: #0275A7;
 }
 
+/* @end */
 
+/* @group Landing Page Upper Branding */
 
-/**
- * Land page - upper branding area ============================================================
- */
 
 .branding-block {
   margin-bottom: 1em;
@@ -1042,20 +1103,9 @@ body.the-answers .sub_navigation ul {
 
 
 
+/* @end */
 
-
-
-/* ---- End Main Image ---- */
-/* ---- Main Content ---- */
-/* ---- End Main Content ---- */
-
-
-
-
-
-/**
- * Middle branding area ============================================================
- */
+/* @group Middle Branding */
 
 
 /* Custom for the news headlines block */
@@ -1087,16 +1137,10 @@ body.the-answers .sub_navigation ul {
   vertical-align:middle;
 }*/
 
-/* ---- End Middle branding area ---- */
+/* @end */
 
+/* @group Lower Branding */
 
-
-
-
-
-/**
- * Lower branding area ============================================================
- */
 div#branding_lower_bar {
 }
 
@@ -1182,11 +1226,9 @@ div.secondary_box img {
   background-color: #eee;
 }
 
-/* ---- End lower branding bar ---- */
+/* @end */
 
-/**
- * Right sidebar ============================================================
- */
+/* @group Right Sidebar */
 
 
 #sidebar_right {
@@ -1227,22 +1269,18 @@ div.secondary_box img {
   padding-top: 7px;
 }
 
+/* @end */
 
 
-/* ---- End right sidebar ---- */
+/* @group Pages */
 
-
-
-
-/**
- * Individual pages ============================================================
- * =====================================================================================
- * ===================================================
- * =====================================================================================
- * ===================================================
- * =====================================================================================
- */
-
+#body h1.title {
+	display: none;
+	text-align: left;
+	font-size: 1.6em;
+	font-family: inherit;
+	font-weight: bold;
+}
 
  #content_body {
   margin-top: 15px;
@@ -1253,14 +1291,188 @@ div.secondary_box img {
   margin: 6px 3px;
 }
 
-/**
- * Vehicle ============================================================
- */
+.content {
+	margin: 0 0 20px 0;
+}
+ul.links.inline {
+	font-size: 1em !important;
+	position: relative;
+}
+
+ul.links.inline li.first {
+	margin: 10px 0;
+	padding: ;
+}
+
+/* @group Front */
+
+.front #content_body {
+	margin: 0;
+}
+
+.front #main_container {
+	padding: 0;
+}
+.front #panel-frontpage .panels-flexible-region-inside {
+	margin: 0;
+	padding: 0;
+}
+
+/* @group Frontpage Slideshow */
+
+.front #slideshow {
+	height: 380px;
+}
+
+.front #slideshow .slide {
+	display: none;
+}
+
+/* @end */
+
+/* @group Quicklinks */
+
+#quicklinks {
+	width: 940px;
+	height: 70px;
+	margin-top: 10px !important;
+	margin: 0;
+	padding: 0;
+	font-family:"Helvetica Neue", Helvetica, Arial, Verdana, sans-serif;
+	font-size: 1.4em;
+}
+
+#quicklinks a {
+	float: left;
+	width: 25%;
+	color: #999;
+	background: #DDD;
+}
+
+#quicklinks a:hover {
+	background: #CCC;
+	color: #666;
+	text-decoration: none;
+}
+
+#quicklinks a.first {
+	border-top-left-radius: 12px;
+	border-bottom-left-radius: 12px;
+	-moz-border-radius-topleft: 12px;
+	-moz-border-radius-bottomleft: 12px;
+	-webkit-border-top-left-radius: 12px;
+	-webkit-border-bottom-left-radius: 12px;
+}
+#quicklinks a.last {
+	border-top-right-radius: 12px;
+	border-bottom-right-radius: 12px;
+	-moz-border-radius-topright: 12px;
+	-moz-border-radius-bottomright: 12px;
+	-webkit-border-top-right-radius: 12px;
+	-webkit-border-bottom-right-radius: 12px;
+}
+
+#quicklinks a .icon {
+	width: 50px;
+	height: 50px;
+	float: left;
+	margin: 10px 10px 10px 20px;
+}
+
+#quicklinks .quicklink1 .icon {
+	background: url(images/sprites.png) 0 0 no-repeat;
+}
+#quicklinks .quicklink2 .icon {
+	background: url(images/sprites.png) -200px 0 no-repeat;
+}
+
+#quicklinks .quicklink3 .icon {
+	background: url(images/sprites.png) -50px 0 no-repeat;
+}
+
+#quicklinks .quicklink4 .icon {
+	background: url(images/sprites.png) -150px 0 no-repeat;
+}
+
+#quicklinks a .text {
+	height: 40px;
+	float: left;
+	margin: 15px 0;
+}
+
+/* @end */
+
+/* @end */
+
+
+
+/* @group Vehicle */
  
+ /* specs */
+ 
+.the-vehicle #specs_table {
+	width: 60%;
+	float: left;
+}
+ 
+.the-vehicle #specs_table td,
+.the-vehicle #specs_table tr {
+	border: 0px;
+}
+
+.the-vehicle #specs_table td.spec {
+	font-weight: bold;
+	
+}
+
+.the-vehicle .features-list {
+	width: 35%;
+	margin-top: -40px;
+	margin-left: 5%;
+	float: left;
+}
+
+.the-vehicle .features-list li {
+	font-size: 0.9em !important;
+	line-height: 1.8em;
+}
+
+.the-vehicle .footnote {
+	clear: both;
+}
  /* gallery  */
 #galleria-content {
-  width: 560px;
+  width: 940px;
   margin: 1em auto;
+}
+
+.galleria_wrapper {
+	width: 550px;
+	margin: auto;
+}
+.galleria_wrapper img.replaced {
+	margin: auto;
+}
+
+#galleria-content .item-list {
+	float: left;
+	width: 100%;
+	overflow: hidden;
+	position: relative;
+}
+ul.gallery li {
+	width: 63px !important;
+	height: 63px !important;
+	margin: 0px !important;
+}
+ul.gallery li img{
+	margin: 0px !important;
+}
+.galleria-nav {
+	text-align: center;
+}
+#galleria-content .galleria_container .caption {
+	display: none !important;
 }
 
 /* savings */
@@ -1273,14 +1485,19 @@ div.secondary_box img {
   margin: 0 8em;
 }
 
-/**
- * Blog ============================================================
- */
+/* @end */
+
+/* @group Blog */
+
+.the-journey #body h1.title {
+	display: block;
+}
 
 
 .the-journey img.imagecache-blog_lead_image_banner {
   float: none;
   margin: 6px auto;
+  border: none;
 }
 
 .the-journey .view-blog-front-page .views-field-field-lead-image-fid span.field-content, .field-field-lead-image .field-item {
@@ -1319,11 +1536,9 @@ div.secondary_box img {
   text-decoration: none;
 }
 
+/* @end */
 
-
-/**
- * Chat / Contact ============================================================
- */
+/* @group Chat/Contact */
 
  .node-124 .content {
   text-align: center;
@@ -1336,7 +1551,7 @@ div.secondary_box img {
 }
 
 #habla_window_div .habla_panel_border {
-   font-family: "Lucida Sans Unicode","Lucida Grande", Verdana, Arial, sans-serif;
+   font-family: "Lucida Sans Unicode","Lucida Grande", Arial, Verdana, sans-serif;
 }
 
 
@@ -1353,11 +1568,10 @@ div.secondary_box img {
   display: none;
 }
 
- 
+/* @end */
 
-/**
- * Ubercart edits ============================================================
- */
+/* @group Ubercart */
+
 .solid-border {
   padding: 0;
   border: 0 none;
@@ -1385,11 +1599,10 @@ div.secondary_box img {
   float:left;
 }
 
+/* @end */
 
+/* @group Forum */
 
-/**
- * Forum ============================================================
- */
 #forum tr td.forum {
   background-image: none;
 }
@@ -1408,42 +1621,137 @@ div.secondary_box img {
   line-height: 0;
 }
 
+/* @end */
 
+/* @group Calculator */
 
- 
-/**
- * Calculator Block ============================================================
- */
-.view-id-upcoming_events .views-field-field-event-time-value {
-  width: 175px;
-}
-
- 
- 
- 
-/**
- * Calculator Block ============================================================
- */
- 
 form#arcimoto-calculator-form div.form-item {
   display: inline;
   padding: 0;
 }
- 
- /**
- * Answers / FAQ ============================================================
- */
+
+form#arcimoto-calculator-form {
+	font-size: 1.3em;
+}
+form#arcimoto-calculator-form input {
+	font-size: 1.2em;
+	width: 2.5em;	
+}
+form#arcimoto-calculator-form input#edit-dollars-per-gallon {
+	width: 2.5em;
+}
+form#arcimoto-calculator-form input#edit-miles-per-period {
+	width: 1.5em;
+}
+form#arcimoto-calculator-form input#edit-current-miles-per-gallon {
+	width: 2.5em;
+}
+form#arcimoto-calculator-form input#edit-dollars-per-kwh {
+	width: 4em;
+}
+form#arcimoto-calculator-form input#edit-submit {
+	width: auto;
+}
+/* @end */
+
+/* @group Community */
+
+
+.page-juitter #body h1.title {
+	display: block;
+}
+
+
+#node-320 {
+	margin: 0 0 20px 0;
+	border-bottom: 1px solid #999;
+}
+#node-320 h2 {
+	margin: 0;
+}
+
+.view-blog-front-page .views-field-title h2 {
+	padding: 0;
+}
+.view-blog-front-page.view-display-id-page_1 .views-row {
+	margin: 0 20px 20px 0;
+}
+.view-blog-front-page .views-field-field-lead-image-fid {
+	margin: 0 20px 0 0;
+	float: left;
+	height: 80px;
+}
+
+.view-arcimoto-tweets .views-row {
+	margin: 0 0 10px 0;
+}
+.view-arcimoto-tweets .views-field-nothing span.meta a {
+	text-decoration: none;
+}
+.view-arcimoto-tweets .views-field-nothing span.meta a:hover {
+	text-decoration: underline;
+}
+
+.view-blog-comments-recent .views-row {
+	margin: 0 0 10px 0;
+}
+.view-blog-comments-recent .views-field-nothing span.meta a {
+	text-decoration: none;
+	font-weight: bold;
+}
+.view-blog-comments-recent .views-field-nothing span.meta a:hover {
+	text-decoration: underline;
+}
+
+/* @end */
+
+/* @group Events */
+
+.view-id-upcoming_events .views-field-title {
+  font-size: 1.2em;
+  font-weight: bold;
+}
+
+.view-id-upcoming_events .views-field-field-event-time-value {
+  font-size: 1em;
+  font-weight: bold;
+  color: #aaa;
+  margin: 0 0 15px;
+}
+
+.view-id-upcoming_events .views-field-body {
+  margin: 0 0 2	5px;
+}
+
+
+/* @end */
+
+/* @group FAQ */
+
+.faq-dl-hide-answer {
+	font-size: 1.1em !important;
+}
 .faq-dd-hide-answer {
-  display: none;
+	display: none;
+} 
+
+.faq-dd-hide-answer p {
+	margin: 4px 0 0 0;
+	font-size: 0.9em !important;
 } 
 
 #block-nodeblock-262 ul{
   padding-left: 0;
 }
- 
- 
- 
- 
+
+
+
+/* @end */
+
+/* @end */
+
+/* @group DISABLED? */
+
  
 /*
 #main_content_splash {
@@ -1525,14 +1833,14 @@ form#arcimoto-calculator-form div.form-item {
 }
 
 #main_content_right p {
-  font-family: "Lucida Sans Unicode", "Lucida Grande", Verdana, Arial, sans-serif;
+  font-family: "Lucida Sans Unicode", "Lucida Grande", Arial, Verdana, sans-serif;
   font-size: 12.9px;
   margin-top: 37px;
 }
 
 #main_content_right li {
   float: none;
-  font-family: Blair, "Lucida Sans Unicode", "Lucida Grande", Verdana, Arial, sans-serif;
+  font-family: Blair, "Lucida Sans Unicode", "Lucida Grande", Arial, Verdana, sans-serif;
   font-size: 14.53px;
   list-style-type: disc;
   margin-top: 15px;
@@ -1552,13 +1860,10 @@ form#arcimoto-calculator-form div.form-item {
 }*/
 
 
+/* @end */
 
+/* @group Footer */
 
-
-/**
- * Footer ============================================================
- */
- 
 /* ---- Footer Links ---- */
 
 #footer {
@@ -1576,7 +1881,7 @@ form#arcimoto-calculator-form div.form-item {
   color: #666;
 }
 
-#footer .footer_links li {
+#footer .footer_links {
   float: left;
   margin: 0 10px 0 0;
   padding: 0;
@@ -1601,18 +1906,16 @@ form#arcimoto-calculator-form div.form-item {
 
 /* ---- End Footer ---- */
 
+/* @end */
 
-
-
-/**
- * Footer (2) ============================================================
- */
+/* @group Footer (2) */
 
 #footer2 {
   color: #999;
   margin-bottom: 2em;
   padding-top: 0.75em;
   font-size: 0.9em;
+  text-align: center;
 }
 
 #footer2 a, #footer2 a:hover, #footer2 a:active, #footer2 a:visited {
@@ -1638,7 +1941,20 @@ form#arcimoto-calculator-form div.form-item {
 
 #footer2 #footer_links {
   text-transform: uppercase;
+  font-weight: bold;
+  color: #DDD;
 }
+#footer2 #footer_links a {
+  margin: 0 5px;
+  color: #AAA;
+
+}
+#footer2 #footer_links a:hover {
+  margin: 0 5px;
+  color: #AAA;
+  text-decoration: none;
+}
+
 
 #footer2 .address ul {
   width: 10em;
@@ -1650,6 +1966,16 @@ form#arcimoto-calculator-form div.form-item {
   text-align: right;
 }
 
+
+#footer2 #copyright {
+	color: #AAA;
+}
+#footer2 #copyright a {
+	color: #AAA;
+}
+#footer2 #copyright a:hover {
+	color: #888;
+}
 
 /* ---- Social Media Icons ---- */
 #footer2 .social_media_icons {
@@ -1704,7 +2030,9 @@ form#arcimoto-calculator-form div.form-item {
 
 /* ---- End Footer2 ---- */
 
+/* @end */
 
+/* @group Borders */
 
 /* ---- Content Borders ---- */
 
@@ -1712,9 +2040,9 @@ form#arcimoto-calculator-form div.form-item {
   background-repeat: repeat-y;
   border-color: #dbeaee;
   border-left-style: solid;
-  border-left-width: 1px;
+  border-left-width: 0px;
   border-right-style: solid;
-  border-right-width: 1px;
+  border-right-width: 0px;
   padding-left: 10px;
   padding-right: 10px;
 }
@@ -1723,19 +2051,12 @@ form#arcimoto-calculator-form div.form-item {
   background-color: #d7e8ec;
   height: 1px;
   width: 100%;
+  display: none;
 }
 
+/* @end */
 
-
-
-
-
-
-
-
-
-
-
+/* @group DISABLED 2 */
 
 /* ---- Community Forum ---- */
 /*#community {
@@ -1744,7 +2065,7 @@ form#arcimoto-calculator-form div.form-item {
 
 #community h1 {
   float: left;
-  font-family: "Lucida Sans Unicode","Lucida Grande", Verdana, Arial, sans-serif;
+  font-family: "Lucida Sans Unicode","Lucida Grande", Arial, Verdana, sans-serif;
   font-size: 18px;
   height: 11px;
   margin-bottom: 9px;
@@ -1764,7 +2085,7 @@ form#arcimoto-calculator-form div.form-item {
   border-color: #bcdcef;
   border-style: solid;
   border-width: 1px;
-  font-family: "Lucida Sans Unicode","Lucida Grande", Verdana, Arial, sans-serif;
+  font-family: "Lucida Sans Unicode","Lucida Grande", Arial, Verdana, sans-serif;
   margin: 8px 0 0;
   padding: 13px 0 10px 8px;
 }
@@ -1786,7 +2107,7 @@ form#arcimoto-calculator-form div.form-item {
 /* -- Community Forum -- */
 /*#community_forum_topics {
   float: left;
-  font-family: "Lucida Sans Unicode","Lucida Grande", Verdana, Arial, sans-serif;
+  font-family: "Lucida Sans Unicode","Lucida Grande", Arial, Verdana, sans-serif;
   font-size: 10px;
   height: 100px;
   margin-left: 23px;
@@ -2010,7 +2331,7 @@ form#arcimoto-calculator-form div.form-item {
 
 
 .main_display h2,div.secondary_box_body h2 {
-  font-family: "Lucida Sans Unicode", "Lucida Grande", Verdana, Arial, sans-serif;
+  font-family: "Lucida Sans Unicode", "Lucida Grande", Arial, Verdana, sans-serif;
   font-size: 10px;
   margin: 0;
   padding: 12px 0 14px;
@@ -2046,7 +2367,9 @@ form#arcimoto-calculator-form div.form-item {
   color: #000;
 }*/
 
+/* @end */
 
+/* @group Sidebar */
 
 /* ---- Sidebar for development ---- */
 #dev_popout_sidebar {
@@ -2070,6 +2393,8 @@ form#arcimoto-calculator-form div.form-item {
   opacity: 1;
   -moz-opacity:1;
 }
+
+/* @end */
 
 /* @group Webforms */
 

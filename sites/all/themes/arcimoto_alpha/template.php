@@ -4,6 +4,39 @@ function hook_theme($existing, $type, $theme, $path) {
 
 }
 
+/**
+ * JavaScript additions ============================================================
+ */
+
+/* For jQuery Cycle Lite slideshow on front page */
+
+drupal_add_js('
+  $(document).ready(function() {
+	$("#slideshow").show();
+    $("#slideshow").cycle({timeout:6000,speed:1000,delay:1000,pause:1});
+  });
+', 'inline');
+
+
+/*  ShareThis custom button JS */
+
+/*
+drupal_add_js('
+var object = SHARETHIS.addEntry({
+title:"Arcimoto",
+summary: "Introducing the Pulse, an electric that is affordable and beautiful"},
+{button:false});
+
+var element = document.getElementById("sharethis");
+object.attachButton(element);
+', 'inline');
+
+*/
+
+
+/*  Comodo SSL TrustLogo */
+
+
 
 /**
  * Preprocess functions ============================================================
@@ -26,7 +59,7 @@ function phptemplate_preprocess_page(&$vars) {
   
 
   // Set the logo 
-  $logo = $vars['base_path'] . $vars['directory'] . '/images/arcimoto_logo.png';
+  $logo = $vars['base_path'] . $vars['directory'] . '/images/arcimoto_logo3d.png';
   $vars['logo'] = $logo;
   
   // Fix up the primary links
@@ -123,7 +156,83 @@ function arcimoto_alpha_blocks($region) {
 }
 
 
+/**
+ * Return a themed set of links.  
+ * 
+ * Overrides Drupal core to put new delimiters in secondary links.
+ *
+ * @param $links
+ *   A keyed array of links to be themed.
+ * @param $attributes
+ *   A keyed array of attributes
+ * @return
+ *   A string containing an unordered list of links.
+ */
 
+
+function arcimoto_alpha_links($links, $attributes = array('class' => 'links')) {
+  global $language;
+  $output = '';
+
+// | delimiter added here.
+    if($attributes['class'] == 'links secondary-links') {
+    $linklist = array();
+    foreach ((array)$links as $key => $link) {
+        $linklist[] = l($link['title'], $link['href'], $link);
+    }
+    // Return the links joined by a '|' character
+    return join(' | ', $linklist);
+
+  }
+	
+
+  if (count($links) > 0) {
+    $output = '<ul'. drupal_attributes($attributes) .'>';
+
+    $num_links = count($links);
+    $i = 1;
+
+    foreach ($links as $key => $link) {
+      $class = $key;
+
+      // Add first, last and active classes to the list of links to help out themers.
+      if ($i == 1) {
+        $class .= ' first';
+      }
+      if ($i == $num_links) {
+        $class .= ' last';
+      }
+      if (isset($link['href']) && ($link['href'] == $_GET['q'] || ($link['href'] == '<front>' && drupal_is_front_page()))
+          && (empty($link['language']) || $link['language']->language == $language->language)) {
+        $class .= ' active';
+      }
+      $output .= '<li'. drupal_attributes(array('class' => $class)) .'>';
+
+      if (isset($link['href'])) {
+        // Pass in $link as $options, they share the same keys.
+        $output .= l($link['title'], $link['href'], $link);
+      }
+      else if (!empty($link['title'])) {
+        // Some links are actually not links, but we wrap these in <span> for adding title and class attributes
+        if (empty($link['html'])) {
+          $link['title'] = check_plain($link['title']);
+        }
+        $span_attributes = '';
+        if (isset($link['attributes'])) {
+          $span_attributes = drupal_attributes($link['attributes']);
+        }
+        $output .= '<span'. $span_attributes .'>'. $link['title'] .'</span>';
+      }
+
+      $i++;
+      $output .= "</li>\n";
+    }
+
+    $output .= '</ul>';
+  }
+
+  return $output;
+}
 
 /**
  * Sub navigation ============================================================
@@ -229,6 +338,23 @@ function arcimoto_alpha_menu_navigation_links($menu_name, $level = 0) {
  */
 function arcimoto_alpha_user_box($user) {
   
+
+  if(user_is_anonymous()) {
+    $output = '
+		  <div class="login-block">
+				<a href="/login">Login</a> | <a href="/user/register">Register</a>
+		  </div><!-- /login-block-->
+          ';
+  } else {
+    $output = '
+		  <div class="login-block">
+				'.l('Logout', 'logout').' | <a href="/user">Profile</a>
+		</div><!-- /login-block-->
+        ';
+  }
+
+/* ORIGINAL BOX
+
   if(user_is_anonymous()) {
     $output = '
           <h3 id="join_community_image">Join the community</h3>
@@ -252,6 +378,8 @@ function arcimoto_alpha_user_box($user) {
           </div>
         ';
   }
+
+*/
   /*$output = '<div id="panel">
       <div id="panel_contents"> </div>
       <div class="border" id="login">
@@ -298,24 +426,28 @@ function _arcimoto_alpha_join_form() {
 /**
  * Override of theme_node_form().
  */
+
+
 function arcimoto_alpha_node_form($form) {
   //$buttons = '<div class="buttons">'. drupal_render($form['buttons']) .'</div>';
   
   // Allow modules to insert form elements into the sidebar,
   // defaults to showing taxonomy in that location.
   if (!$sidebar_fields = module_invoke_all('node_form_sidebar', $form, $form['#node'])) {
-    $sidebar_fields = array('buttons',  'taxonomy','author', 'options', 'revision_information', 'menu', 'comment_settings', 'xmlsitemap');
+    $sidebar_fields = array('buttons', 'twitter', 'field_newsflash_image', 'taxonomy','author', 'options', 'revision_information', 'menu', 'comment_settings', 'xmlsitemap');
   }
   foreach ($sidebar_fields as $field) {
     $sidebar .= drupal_render($form[$field]);
   }
-  
+  //dpm($form);
+
   $main = drupal_render($form);
   return "<div class='node-form clear-block'>
     <div class='right grid_5 omega'>{$buttons}{$sidebar}</div>
     <div class='left grid_11 alpha'><div class='main'>{$main}{$buttons}</div></div>
   </div>";
 }
+
 
 /**
  * Override of theme_fieldset().
@@ -376,7 +508,10 @@ function get_preorder_count() {
 *      string
 *          If the view is not found a message is returned.
 */
-function views_get_view_result($viewname, $display_id = NULL, $args = NULL) {
+
+/* TODO WTF IS THIS? Blanchard's testing?  */
+
+/* function views_get_view_result($viewname, $display_id = NULL, $args = NULL) {
   $view = views_get_view($viewname);
   if (is_object($view)) {
     if (is_array($args)) {
@@ -397,6 +532,7 @@ function views_get_view_result($viewname, $display_id = NULL, $args = NULL) {
   }
 }
 
+*/
 
 
 /**

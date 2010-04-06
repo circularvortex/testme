@@ -5,13 +5,31 @@
   <?php print $head ?>
   <?php print $styles ?>
   <?php print $scripts ?>
-  <script type="text/javascript"> </script>
+  <script language="javascript" type="text/javascript">
+//<![CDATA[
+var tl_loc0=(window.location.protocol == "https:")? "https://secure.comodo.net/trustlogo/javascript/trustlogo.js" :
+"http://www.trustlogo.com/trustlogo/javascript/trustlogo.js";
+document.writeln('<scr' + 'ipt language="JavaScript" src="'+tl_loc0+'" type="text\/javascript">' + '<\/scr' + 'ipt>');
+//]]>
+</script>
 </head>
 <body class="<?php print $body_classes; ?> standard_page">
 <!-- Begin the Container -->
 <div class="container_16" id="header">
-  <!--And the logo! -->
-  <div class="grid_6">
+	
+  
+  <!-- User box-->
+  <div class="prefix_10 grid_6">
+    <div id="user_box">
+      <div id="user_box_container">
+        <?php print $user_box ?>
+      </div>
+    </div>
+  </div>
+
+
+  <!--Logo -->
+  <div class="grid_16">
     <?php if ($logo): ?> 
       <div id="logo">
         <a href="<?php print $base_path ?>" title="<?php print t('Arcimoto Home') ?>">
@@ -23,18 +41,10 @@
     <div class="site_title"><a href="<?php print $base_path ?>" title="<?php print t('Home'); ?>"><?php print $site_name; ?></a></div>
 
   </div>
-  
-  <!-- User box-->
-  <div class="prefix_4 grid_6">
-    <div id="user_box">
-      <div id="user_box_container">
-        <?php print $user_box ?>
-      </div>
-    </div>
-  </div>
+
   
   <!-- Navigation bar -->
-  <div class="grid_11 suffix_5">
+  <div class="grid_16">
     <div id="navigation">
       <?php if (isset($primary_links)): ?>
         <?php print theme('links', $primary_links, array('class' => 'links primary-links')) ?>
@@ -91,7 +101,7 @@
     
       <?php if($title) : ?>
         <div>
-          <h1><?php print $title ?></h1>
+          <h1 class="title"><?php print $title ?></h1>
         </div>
       <?php endif; ?>
       
@@ -104,8 +114,15 @@
       
       <div id="content_body">
         <?php print $content ?>
+		<?php if ($node->comment && $node->comment_count) : ?>
+		    <div>
+				<h2>Comments on this post:</h2>
+			</div>
+		<?php endif; ?>
       </div>
       
+	  
+	
     </div>
     
     
@@ -135,12 +152,18 @@
 <div class="container_16 content_border clearfix">
   <div id="footer2" class="clearfix">
     <!-- Footer Links -->
-    <div class="grid_4" id="footer_links">
+    <div class="grid_16" id="footer_links">
       <?php if (isset($secondary_links)) : ?>
-        <?php print theme('links', $secondary_links, array('class' => 'links secondary-links')) ?>
+        <?php print arcimoto_alpha_links($secondary_links, array('class' => 'links secondary-links')) ?>
       <?php endif; ?>	
     </div>
-    
+
+	<div id="copyright">
+		&copy;2007-<?php print date('Y') ?> Arcimoto, LLC.  All rights reserved.<br>
+		<?php print l('Privacy policy', 'privacy-policy') ?>
+	</div>
+<?php /* Previous footer, remove eventually...
+
     <!-- Begin social media links/icons -->
     <div class="prefix_1 grid_6 suffix_1 social_media_icons_2">
       <p>Join Us</p>
@@ -163,7 +186,11 @@
     </div>
   </div>
   <br class="clear" />
-</div>
+
+*/ ?>
+
+
+</div><!-- /container_16 -->
 <!-- End Footer -->
 
 <?php if(!empty($dev_popout_sidebar) && $is_admin) : ?>

@@ -10,8 +10,18 @@
 <body class="<?php print $body_classes; ?> landing_page">
 <!-- Begin the Container -->
 <div class="container_16" id="header">
-  <!--And the logo! -->
-  <div class="grid_6">
+  <!-- User box-->
+  <div class="prefix_10 grid_6">
+    <div id="user_box">
+      <div id="user_box_container">
+        <?php print $user_box ?>
+      </div>
+    </div>
+  </div>
+
+
+  <!--Logo -->
+  <div class="grid_16">
     <?php if ($logo): ?> 
       <div id="logo">
         <a href="<?php print $base_path ?>" title="<?php print t('Arcimoto Home') ?>">
@@ -19,23 +29,14 @@
         </a>
       </div>
     <?php endif; ?>
-    
-    <h1 class="site_title"><a href="<?php print $base_path ?>" title="<?php print t('Home'); ?>"><?php print $site_name; ?></a></h1>
+
+    <div class="site_title"><a href="<?php print $base_path ?>" title="<?php print t('Home'); ?>"><?php print $site_name; ?></a></div>
 
   </div>
-  
-  <!-- User box-->
-  <div class="prefix_4 grid_6">
-    <div id="user_box">
-      <div id="user_box_container">
-        <?php print $user_box ?>
-      </div>
-    </div>
-  </div>
-  <!-- End user box-->
-  
+
+
   <!-- Navigation bar -->
-  <div class="grid_11 suffix_5">
+  <div class="grid_16">
     <div id="navigation">
       <?php if (isset($primary_links)): ?>
         <?php print theme('links', $primary_links, array('class' => 'links primary-links')) ?>

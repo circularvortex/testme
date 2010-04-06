@@ -1,6 +1,8 @@
-$(document).ready(function() {
-  $("#join_email_overlabel").overlabel();
-});
+/*$(document).ready(function() {
+*  $("#join_email_overlabel").overlabel();
+* });
+*/
+
 
 /** From admin (aka slate) theme to make fieldsets into divs **/
 Drupal.behaviors.arcimoto_alpha = function(context) {

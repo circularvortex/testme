@@ -51,7 +51,7 @@ $edit_link = '';
 if ($user->uid === 1) {
   $edit_link = ' | ' . l('Edit', '/?q=node/' . $nid . '/edit');
 }
-$meta = 'Posted by '.$name.' on '.date('M j, Y', $created) . $edit_link;
+$meta = 'by '.$name.', '.date('M j, Y', $created) . $edit_link;
 ?>
 <div id="node-<?php print $node->nid; ?>" class="node<?php if ($sticky) { print ' sticky'; } ?><?php if (!$status) { print ' node-unpublished'; } ?> clear-block">
 

@@ -10,6 +10,7 @@ stylesheets[all][] = style.css
 
 scripts[] = js/jquery.overlabel.js
 scripts[] = script.js
+scripts[] = images/slideshow/jquery.cycle.lite.1.0.min.js
 
 regions[content_top] = Content Top
 regions[content_bottom] = Content Bottom
