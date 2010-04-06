@@ -1,5 +1,5 @@
 <?php
-// $Id: simplenews.admin.inc,v 1.5.2.49 2009/03/09 07:45:19 sutharsan Exp $
+// $Id: simplenews.admin.inc,v 1.5.2.51 2009/05/08 07:56:43 sutharsan Exp $
 
 /**
  * @file
@@ -901,7 +901,7 @@ function simplenews_admin_settings_mail(&$form_state) {
   $throttle = drupal_map_assoc(array(1, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000));
   $throttle[999999] = t('Unlimited');
   if (function_exists('getrusage')) {
-    $description_extra = '<br />'. t('Cron execution must not exceed the PHP maximum execution time of %max seconds. You find the time spend to send emails in the <a href="/admin/reports/dblog">Recent log entries</a>.', array('%max' => ini_get('max_execution_time')));
+    $description_extra = '<br />'. t('Cron execution must not exceed the PHP maximum execution time of %max seconds. You find the time spend to send emails in the !recent_logs.', array('%max' => ini_get('max_execution_time'), '!recent_logs' => l(t('Recent log entries'), 'admin/reports/dblog')));
   }
   else {
     $description_extra = '<br />'. t('Cron execution must not exceed the PHP maximum execution time of %max seconds.', array('%max' => ini_get('max_execution_time')));
@@ -947,7 +947,7 @@ function simplenews_admin_settings_subscription(&$form_state) {
     '#type' => 'checkbox',
     '#title' => t('Synchronize with account'),
     '#default_value' => variable_get('simplenews_sync_account', TRUE),
-    '#description' => t('When checked subscriptions will be synchronized with site accounts. When accounts are deteted, subscriptions with the same email address will be removed. When site accounts are blocked/unblocked, subscriptions will be deactivated/activated. When not checked subscriptions will be unchanged when associated accounts are deleted or blocked.'),
+    '#description' => t('When checked subscriptions will be synchronized with site accounts. When accounts are deleted, subscriptions with the same email address will be removed. When site accounts are blocked/unblocked, subscriptions will be deactivated/activated. When not checked subscriptions will be unchanged when associated accounts are deleted or blocked.'),
   );
 
   // These email tokens are shared for all settings, so just define

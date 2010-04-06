@@ -1,5 +1,4 @@
-<?php
-// $Id: mimemail.tpl.php,v 1.1.2.2 2009/04/14 23:09:01 jerdavis Exp $
+<?php // $Id: mimemail.tpl.php,v 1.2 2009/08/10 17:53:39 vauxia Exp $
 
 /**
  * @file mimemail.tpl.php

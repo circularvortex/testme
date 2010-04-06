@@ -1,5 +1,5 @@
 <?php
-// $Id: simplenews.module,v 1.76.2.129 2009/03/09 07:45:19 sutharsan Exp $
+// $Id: simplenews.module,v 1.76.2.141 2009/11/24 21:59:54 sutharsan Exp $
 
 /**
  * @defgroup simplenews
@@ -57,6 +57,12 @@ define('SIMPLENEWS_SEND_CHECK_INTERVAL', 100);
  * AT 80% OF PHP MAX EXECUTION TIME EMAIL SENDING IS INTERRUPTED
  */
 define('SIMPLENEWS_SEND_TIME_LIMIT', 0.8);
+
+/**
+ * CAPTURE THE PHP MAX EXUCUTION TIME BEFORE drupal_cron_run() CHANGES THIS.
+ * THIS IS A WORK AROUND FOR DRUPAL6.14 BUG. SEE http://drupal.org/node/584334
+ */
+define('SIMPLENEWS_MAX_EXECUTION_TIME', ini_get('max_execution_time'));
 
 /**
  * Implementation of hook_perm().
@@ -345,7 +351,7 @@ function simplenews_nodeapi(&$node, $op, $teaser, $page) {
       break;
     case 'validate':
       $vid = variable_get('simplenews_vid', '');
-      if (!isset($node->taxonomy[$vid]) || (isset($node->taxonomy[$vid]) && !empty($node->taxonomy[$vid]) && simplenews_validate_taxonomy($node->taxonomy) == FALSE)) {
+      if (!isset($node->taxonomy[$vid]) || empty($node->taxonomy[$vid]) || simplenews_validate_taxonomy($node->taxonomy) == FALSE) {
         form_set_error('taxonomy', t('No newsletter term is selected, the newsletter taxonomy term is probably not configured correctly.<br /> Check and <strong>save</strong> the <a href="@settings">Simplenews general settings</a>.', array('%name' => $vocabulary->name, '@settings' => url('admin/settings/simplenews/general'))));
       }
       elseif (isset($node->simplenews['send']) && $node->simplenews['send'] == SIMPLENEWS_COMMAND_SEND_TEST) {
@@ -495,8 +501,16 @@ function simplenews_form_alter(&$form, $form_state, $form_id) {
       '#value' => t('This is the designated simplenews vocabulary.'),
       '#weight' => -1,
     );
-    $form['content_types']['nodes']['#disabled'] = TRUE;
-    $form['content_types']['nodes']['#description'] = t('These content type(s) are used as newsletter. They can also be set in !simplenews_settings.', array('!simplenews_settings' => l('Simplenews settings', 'admin/settings/simplenews')));
+    // We display the current content type settings in a disabled form element
+    // to the user. The real value passed in the form separately because
+    // disabled elements do not get saved at submit.
+    $form['content_types']['display_only'] = $form['content_types']['nodes'];
+    $form['content_types']['display_only']['#disabled'] = TRUE;
+    $form['content_types']['display_only']['#description'] = t('These content type(s) are used as newsletter. They can be set in !simplenews_settings.', array('!simplenews_settings' => l('Simplenews settings', 'admin/settings/simplenews')));
+    $form['content_types']['nodes'] = array(
+      '#type' => 'value',
+      '#value' => $form['content_types']['nodes']['#default_value'],
+    );
     // Free tagging can not be allowed see: simplenews_validate_taxonomy().
     $form['settings']['tags'] = array('#type' => 'value', '#value' => FALSE);
     // Multiple select does not work with simplenews.
@@ -758,10 +772,14 @@ function simplenews_user($op, &$edit, &$account, $category = NULL) {
       }
       break;
     case 'categories':
-      if (user_access('subscribe to newsletters')) {
-        $output[] = array('name' => 'newsletter', 'title' => t('My newsletters'), 'weight' => 10);
-        return $output;
-      }
+      $output[] = array(
+        'name' => 'newsletter',
+        'title' => t('My newsletters'),
+        'weight' => 10,
+        'access callback' => 'user_access',
+        'access arguments' => array('subscribe to newsletters'),
+      );
+      return $output;
       break;
     case 'view':
       global $user;
@@ -798,7 +816,6 @@ function simplenews_user($op, &$edit, &$account, $category = NULL) {
             '#weight' => -1,
           );
         }
-        return array(t('Newsletters') => $subscriptions);
       }
       break;
   }
@@ -1510,6 +1527,17 @@ function simplenews_mail($key, &$message, $params) {
       // Check if this node-language pair has been buffered.
       // If not, build the message and store it for later use.
       if (!isset($messages[$nid][$langcode])) {
+
+	// Use the default theme to render the email content.
+	// We temporary clear the $custom_theme to prevent the admin theme
+	// from being used when the newsletter is sent from the
+	// node add/edit form and the admin theme is other than the
+	// default theme. When no $custom_theme is set, the 
+	// After theming the email $custom_theme is restored.
+      	global $custom_theme;
+        $org_cutom_theme = $custom_theme;
+        $custom_theme = '';
+
         $node = drupal_clone($context['node']);
 
         // Add simplenews specific header data
@@ -1556,6 +1584,8 @@ function simplenews_mail($key, &$message, $params) {
         $footer = theme(array('simplenews_newsletter_footer__'. $context['node']->simplenews['tid'], 'simplenews_newsletter_footer'), $context['node'], $key, $message['language']);
         $messages[$nid][$langcode]['footer'] = $footer;
 
+        // Restore the custom theme.
+        $custom_theme = $org_cutom_theme;
       }
       else {
         // Get message data from buffer
@@ -1701,6 +1731,10 @@ function simplenews_mail_spool($nid = NULL, $vid = NULL, $limit = NULL) {
   $limit = isset($limit) ? $limit : variable_get('simplenews_throttle', 20);
   if ($messages = simplenews_get_spool(SIMPLENEWS_SPOOL_PENDING, $nid, $vid, $limit)) {
     $mail_sent = array();
+
+    // Get PHP maximum execution time. 30 seconds default.
+    $max_execution_time = ini_get('max_execution_time') ? ini_get('max_execution_time') : SIMPLENEWS_MAX_EXECUTION_TIME;
+
     _simplenews_measure_usec(TRUE);
 
     foreach ($messages as $key => $message) {
@@ -1721,7 +1755,7 @@ function simplenews_mail_spool($nid = NULL, $vid = NULL, $limit = NULL) {
         $check_counter = 0;
         // Break the sending if a percentage of max execution time was exceeded.
         $elapsed = _simplenews_measure_usec();
-        if ($elapsed > SIMPLENEWS_SEND_TIME_LIMIT * ini_get('max_execution_time')) {
+        if ($elapsed > SIMPLENEWS_SEND_TIME_LIMIT * $max_execution_time) {
           watchdog('simplenews', 'Sending interrupted: PHP maximum execution time almost exceeded. Remaining newsletters will be send during the next cron run. If this warning occurs regularly you should reduce the !cron_throttle_setting.', array('!cron_throttle_setting' => l(t('Cron throttle setting'), 'admin/settings/simplenews/mail')), WATCHDOG_WARNING);
           break;
         }
@@ -1942,9 +1976,12 @@ function _simplenews_set_from($node = NULL) {
     $name = variable_get('simplenews_from_name', $name_default);
   }
 
+  // Windows based PHP systems don't accept formatted emails.
+  $formatted_address = substr(PHP_OS, 0, 3) == 'WIN' ? $address : '"'. mime_header_encode($name) .'" <'. $address .'>';
+  
   return array(
     'address' => $address,
-    'formatted' => '"'. mime_header_encode($name) .'" <'. $address .'>',
+    'formatted' => $formatted_address,
   );
 }
 
@@ -2037,7 +2074,7 @@ function simplenews_html_to_text($text, $inline_hyperlinks = TRUE) {
 function _simplenews_absolute_mail_urls($match) {
   global $base_url, $base_path;
   static $regexp;
-  $url = '';
+  $url = $label = '';
 
   if ($match) {
     if (empty($regexp)) {
@@ -2045,8 +2082,18 @@ function _simplenews_absolute_mail_urls($match) {
     }
     list(, $url, $label) = $match;
     $url = strpos($url, '://') ? $url : preg_replace($regexp, $base_url .'/', $url);
+
+    // If the link is formed by Drupal's URL filter, we only return the URL.
+    // The URL filter generates a label out of the original URL.
+    if (strpos($label, '...') == strlen($label) - 3) {
+      // Remove ellipsis from end of label.
+      $label = substr($label, 0, strlen($label) - 3);
+    }
+    if (strpos($url, $label) !== FALSE) {
+      return $url;
+    }
+    return $label .' '. $url;
   }
-  return $label .' '. $url;
 }
 
 /**
@@ -2118,7 +2165,16 @@ function simplenews_mail_tokens($subscription, $context, $language) {
   }
 
   // Get tokens from user_mail_tokens() and add simplenews variables.
-  $vars = $subscription->uid ? user_mail_tokens($subscription, $language) : array();
+  if($subscription->uid) {
+    $vars = user_mail_tokens($subscription, $language);
+  }
+  else {
+    $vars = array();
+    $vars['!site'] = variable_get('site_name', 'Drupal');
+    $vars['!mailto'] = $subscription->mail;
+    $vars['!date'] = format_date(time(), 'medium', '', NULL, $language->language);
+    $vars['!login_uri'] = url('user', array('absolute' => TRUE, 'language' => $language));
+  }
   // Replace existing uri and uri_brief to cope with multilingual sites.
   $vars['!uri'] = url('', array('absolute' => TRUE, 'language' => $language));
   $vars['!uri_brief'] = preg_replace('!^https?://!', '', $vars['!uri']);
