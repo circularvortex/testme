@@ -1,5 +1,5 @@
 <?php
-// $Id: uc_order.install,v 1.9.2.16 2009/08/18 16:35:10 islandusurper Exp $
+// $Id: uc_order.install,v 1.9.2.18 2009/09/23 15:45:56 islandusurper Exp $
 
 /**
  * @file
@@ -38,8 +38,8 @@ function uc_order_schema() {
       'order_total' => array(
         'description' => t('The total amount to be paid for the order.'),
         'type' => 'numeric',
-        'precision' => 15,
-        'scale' => 3,
+        'precision' => 16,
+        'scale' => 5,
         'not null' => TRUE,
         'default' => 0.0,
       ),
@@ -366,8 +366,8 @@ function uc_order_schema() {
       'amount' => array(
         'description' => t("The amount of the line item in the store's currency."),
         'type' => 'numeric',
-        'precision' => 15,
-        'scale' => 3,
+        'precision' => 16,
+        'scale' => 5,
         'not null' => TRUE,
         'default' => 0.0,
       ),
@@ -485,16 +485,16 @@ function uc_order_schema() {
       'cost' => array(
         'description' => t('The cost to the store for the product.'),
         'type' => 'numeric',
-        'precision' => 15,
-        'scale' => 3,
+        'precision' => 16,
+        'scale' => 5,
         'not null' => TRUE,
         'default' => 0.0,
       ),
       'price' => array(
         'description' => t('The price paid for the ordered product.'),
         'type' => 'numeric',
-        'precision' => 15,
-        'scale' => 3,
+        'precision' => 16,
+        'scale' => 5,
         'not null' => TRUE,
         'default' => 0.0,
       ),
@@ -1065,3 +1065,76 @@ function uc_order_update_6012(&$sandbox) {
   return $ret;
 }
 
+/**
+ * Convert the settings for the uc_order_condition_has_products to models.
+ */
+function uc_order_update_6013() {
+  $ret = array();
+
+  $models = array();
+  $count = 0;
+
+  $result = db_query("SELECT pid, conditions FROM {ca_predicates} WHERE conditions LIKE '%%uc_order_condition_has_products%%'");
+  while ($predicate = db_fetch_object($result)) {
+    $conditions = unserialize($predicate->conditions);
+
+    $save = uc_order_6013_condition_helper($conditions['#conditions'], $predicate->pid);
+
+    if ($save) {
+      db_query("UPDATE {ca_predicates} SET conditions = '%s' WHERE pid = '%s'", serialize($conditions), $predicate->pid);
+      $count++;
+    }
+  }
+
+  $t = get_t();
+  $ret[] = array('success' => TRUE, 'query' => $t('Fixed %count predicates with the condition "uc_order_condition_has_products".', array('%count' => $count)));
+
+  return $ret;
+}
+
+function uc_order_6013_condition_helper(&$conditions, $pid, $save = FALSE) {
+  foreach ($conditions as $key => &$condition) {
+    if (isset($condition['#conditions'])) {
+      $save = uc_order_6013_condition_helper($condition['#conditions'], $pid, $save);
+    }
+    else {
+      if ($condition['#name'] == 'uc_order_condition_has_products' && isset($condition['#settings']['products'])) {
+        $save = TRUE;
+        $products = array();
+
+        foreach ($condition['#settings']['products'] as $x => $nid) {
+          // The "Any" setting will be an empty string.
+          if (is_numeric($nid)) {
+            if (!isset($models[$nid])) {
+              // Get the latest revision's model.
+              $models[$nid] = db_result(db_query("SELECT p.model FROM {uc_products} AS p LEFT JOIN {node} AS n ON n.vid = p.vid WHERE n.nid = %d", $nid));
+            }
+
+            $model = $models[$nid];
+          }
+          else {
+            $model = $nid;
+          }
+
+          $condition['#settings']['products'][$x] = $model;
+        }
+      }
+    }
+  }
+
+  return $save;
+}
+
+/**
+ * Change currency fields to numeric(16,5).
+ */
+function uc_order_update_6014() {
+  $ret = array();
+
+  db_change_field($ret, 'uc_orders', 'order_total', 'order_total', array('type' => 'numeric', 'precision' => 16, 'scale' => 5, 'not null' => TRUE, 'default' => 0.0));
+  db_change_field($ret, 'uc_order_line_items', 'amount', 'amount', array('type' => 'numeric', 'precision' => 16, 'scale' => 5, 'not null' => TRUE, 'default' => 0.0));
+  db_change_field($ret, 'uc_order_products', 'cost', 'cost', array('type' => 'numeric', 'precision' => 16, 'scale' => 5, 'not null' => TRUE, 'default' => 0));
+  db_change_field($ret, 'uc_order_products', 'price', 'price', array('type' => 'numeric', 'precision' => 16, 'scale' => 5, 'not null' => TRUE, 'default' => 0));
+
+  return $ret;
+}

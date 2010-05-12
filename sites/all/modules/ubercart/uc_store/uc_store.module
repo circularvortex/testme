@@ -1,5 +1,5 @@
 <?php
-// $Id: uc_store.module,v 1.14.2.29 2009/08/17 21:27:54 islandusurper Exp $
+// $Id: uc_store.module,v 1.14.2.35 2009/11/11 21:05:18 islandusurper Exp $
 
 /**
  * @file
@@ -9,6 +9,9 @@
  * in different parts of the Ubercart core.  It also provides screens and
  * settings pages for use in store administration.
  */
+
+// Ubercart price API may be required before hook_init() is invoked.
+require_once dirname(__FILE__) .'/includes/uc_price.inc';
 
 /**
  * Unit conversion ratios.
@@ -70,7 +73,7 @@ function uc_store_menu() {
     'title' => 'Store administration',
     'description' => 'Administer store settings, products, orders, and more.',
     'page callback' => 'uc_store_admin',
-    'access arguments' => array('administer store'),
+    'access arguments' => array('access administration pages'),
     'type' => MENU_NORMAL_ITEM,
     'file' => 'uc_store.admin.inc',
   );
@@ -325,13 +328,26 @@ function uc_store_menu() {
  * Implementation of hook_init().
  */
 function uc_store_init() {
-  $dir = drupal_get_path('module', 'uc_store');
+  module_load_include('inc', 'uc_store', 'includes/summaries');
+  module_load_include('inc', 'uc_store', 'includes/tapir');
 
-  require_once($dir .'/includes/summaries.inc');
-  require_once($dir .'/includes/tapir.inc');
-  require_once($dir .'/includes/uc_price.inc');
+  drupal_add_css(drupal_get_path('module', 'uc_store') .'/uc_store.css');
 
-  drupal_add_css($dir .'/uc_store.css');
+  global $conf;
+  $conf['i18n_variables'][] = 'uc_store_name';
+  $conf['i18n_variables'][] = 'uc_field_first_name';
+  $conf['i18n_variables'][] = 'uc_field_last_name';
+  $conf['i18n_variables'][] = 'uc_field_email';
+  $conf['i18n_variables'][] = 'uc_field_phone';
+  $conf['i18n_variables'][] = 'uc_field_company';
+  $conf['i18n_variables'][] = 'uc_field_address';
+  $conf['i18n_variables'][] = 'uc_field_street';
+  $conf['i18n_variables'][] = 'uc_field_street1';
+  $conf['i18n_variables'][] = 'uc_field_street2';
+  $conf['i18n_variables'][] = 'uc_field_city';
+  $conf['i18n_variables'][] = 'uc_field_zone';
+  $conf['i18n_variables'][] = 'uc_field_postal_code';
+  $conf['i18n_variables'][] = 'uc_field_country';
 }
 
 /**
@@ -502,6 +518,9 @@ function uc_store_footer() {
       // No footer on /node or /node/[type]/add.
       // Only add a footer on /node/[nid] if that node is a product.
       if (count($parts) < 1 || intval($parts[1]) == 0) {
+        break;
+      }
+      else {
         $node = node_load($parts[1]);
         if ($node == FALSE || !function_exists('uc_product_node_info') || !uc_product_is_product($node->type)) {
           break;
@@ -579,13 +598,13 @@ function theme_uc_price($value, $context, $options) {
   $output = '<span class="'. implode(' ', $context['class']) .'">';
   // Prefix(es).
   if ($options['label'] && isset($options['prefixes'])) {
-    $output .= implode('', $options['prefixes']);
+    $output .= '<span class="price-prefixes">'. implode('', $options['prefixes']) .'</span>';
   }
   // Value.
   $output .= $value;
   // Suffix(es).
   if ($options['label'] && isset($options['suffixes'])) {
-    $output .= implode('', $options['suffixes']);
+    $output .= '<span class="price-suffixes">'. implode('', $options['suffixes']) .'</span>';
   }
   $output .= '</span>';
 
@@ -902,32 +921,24 @@ function uc_currency_format($value, $sign = TRUE, $thou = TRUE, $dec = NULL) {
     return NULL;
   }
 
-  if (variable_get('uc_currency_prec', 2) > 0) {
-    if (abs($value) < '.'. str_repeat('0', variable_get('uc_currency_prec', 2) - 1) .'1') {
-      $value = 0;
-    }
+  $context = array(
+    'revision' => 'formatted',
+    'type' => 'amount',
+  );
+
+  $options = array();
+
+  if (!$sign) {
+    $options['sign'] = '';
+  }
+  if (!$thou) {
+    $options['thou'] = '';
+  }
+  if (!is_null($dec)) {
+    $options['dec'] = $dec;
   }
 
-  $format = '';
-  if ($value < 0) {
-    $value = abs($value);
-    $format = '-';
-  }
-  else {
-    $format = '';
-  }
-
-  if ($sign && !variable_get('uc_sign_after_amount', FALSE)) {
-    $format .= variable_get('uc_currency_sign', '$');
-  }
-
-  $format .= number_format($value, variable_get('uc_currency_prec', 2), !is_null($dec) ? $dec : variable_get('uc_currency_dec', '.'), $thou ? variable_get('uc_currency_thou', ',') : '');
-
-  if ($sign && variable_get('uc_sign_after_amount', FALSE)) {
-    $format .= variable_get('uc_currency_sign', '$');
-  }
-
-  return $format;
+  return uc_price($value, $context, $options);
 }
 
 /**
@@ -2027,7 +2038,7 @@ function uc_referer_uri() {
  * Returns the current version of Ubercart.
  */
 function uc_version() {
-  return '2.0-rc3';
+  return '6.x-2.1';
 }
 
 /**
@@ -2112,6 +2123,24 @@ function uc_store_mail_recipient_language($address) {
     $lang_object = language_default();
   }
   return $lang_object;
+}
+
+/**
+ * Display prices in forms with a minimum number of decimal places.
+ *
+ * @param $price
+ *   The price to display as the #default_value in a form field.
+ */
+function uc_store_format_price_field_value($price) {
+  $exact = rtrim(number_format($price, 6, '.', ''), '0');
+  $round = number_format($price, variable_get('uc_currency_prec', 2), '.', '');
+
+  if ($exact == rtrim($round, '0')) {
+    return $round;
+  }
+  else {
+    return $exact;
+  }
 }
 
 /**

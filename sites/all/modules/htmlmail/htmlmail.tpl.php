@@ -1,5 +1,5 @@
 <?php
-// $Id: htmlmail.tpl.php,v 1.1.2.2 2009/07/15 03:50:15 chrisherberte Exp $
+// $Id: htmlmail.tpl.php,v 1.1.2.5 2009/07/19 22:43:44 chrisherberte Exp $
 
 /**
  * @file
@@ -19,10 +19,16 @@
  *  - $header  : template header
  *  - $footer  : template footer
  *  - $css     : template css
+ *  - $path    : path to theme template (for images, etc)
+ *
+ * For tips and resources on building HTML e-mails see:
+ * http://www.campaignmonitor.com/css/
+ * http://www.mailchimp.com/articles/email_marketing_guide/
+ * http://css-tricks.com/using-css-in-html-emails-the-real-story/
+ *
  */
 
 ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
@@ -33,23 +39,33 @@
 <?php endif; ?>
 </head>
 
-<body id="htmlmail">
-
-  <?php if ($header): ?>
-  <div id="htmlmail-header">
-  <?php print $header; ?>
-  </div>
-  <?php endif; ?>
-
-  <div id="htmlmail-body">
-  <?php print $body; ?>
-  </div>
-
-  <?php if ($footer): ?>
-  <div id="htmlmail-footer">
-  <?php print $footer; ?>
-  </div>
-  <?php endif; ?>
-
+<body class="htmlmail">
+<table width="100%" border="0" cellspacing="0" cellpadding="5">
+  <tr>
+    <td valign="top" align="center">
+      <table width="100%" border="0" cellspacing="0" cellpadding="0">
+        <?php if ($header): ?>
+        <tr>
+          <td valign="top" class="htmlmail-header">
+          <?php print $header; ?>
+          </td>
+        </tr>
+        <?php endif; ?>
+        <tr>
+          <td valign="top" class="htmlmail-body">
+          <?php print $body; ?>
+          </td>
+        </tr>
+        <?php if ($footer): ?>
+        <tr>
+          <td valign="top" class="htmlmail-footer">
+            <?php print $footer; ?>
+          </td>
+        </tr>
+        <?php endif; ?>
+     </table>
+   </td>
+ </tr>
+</table>
 </body>
 </html>

@@ -1,4 +1,4 @@
-/* $Id: README.txt,v 1.4.2.3 2009/07/15 05:34:11 chrisherberte Exp $ */
+/* $Id: README.txt,v 1.4.2.5 2010/02/26 06:29:22 chrisherberte Exp $ */
 
 HTML Mail
 ---------
@@ -28,6 +28,18 @@ Customisation
 -------------
 E-mails can be themed by copying htmlmail.tpl.php to you active theme's 
 directory and editing the contents.
+
+To install templates, copy htmlmail.tpl.php and html_images/ from the template
+folder to your current theme's folder. 
+*** Remember clear cached data on performance settings page! ***
+admin-> settings -> performance
+[Clear Cached Data]
+
+
+For tips and resources on building HTML e-mails see:
+* http://www.campaignmonitor.com/css/
+* http://www.mailchimp.com/articles/email_marketing_guide/
+* http://css-tricks.com/using-css-in-html-emails-the-real-story/
 
 Important
 ---------

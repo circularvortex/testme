@@ -3,9 +3,9 @@
 
 
 define('ARCIMOTO_DOLLARS_PER_GALLON',   3.00);  // $3.00 average for OR, WA and CA
-define('ARCIMOTO_MILES_PER_DAY',        33);    // 33 miles per day - national average
-define('ARCIMOTO_MILES_PER_GALLON',     31.2);  // 31.2 mpg - national new passenger car mpg for 2008
-define('ARCIMOTO_DOLLARS_PER_KWH',      0.08175);// $0.08175 - OR, WA residential average.  CA increases the average (to 0.1186) so it's not included for now.
+define('ARCIMOTO_MILES_PER_DAY',        25);    // 33 miles per day - national average
+define('ARCIMOTO_MILES_PER_GALLON',     22.1);  // 31.2 mpg - national new passenger car mpg for 2008
+define('ARCIMOTO_DOLLARS_PER_KWH',      0.10);  // $0.08175 - OR, WA residential average.  CA increases the average (to 0.1186) so it's not included for now.
 /*
 Here is state by state:
 $0.0864 -- OR
@@ -96,6 +96,7 @@ function arcimoto_calc_block_contents() {
 * callback function for arcimoto/ajax
 * The return HTML will be outputted by AHAH
 */
+
 /*function arcimoto_ajax() {
   $data = arcimoto_calculate_savings();
   return drupal_json(array('status' => TRUE, 'data' => "Hello Drupal World"));;

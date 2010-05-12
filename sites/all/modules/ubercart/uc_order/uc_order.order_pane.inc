@@ -1,5 +1,5 @@
 <?php
-// $Id: uc_order.order_pane.inc,v 1.1.2.18 2009/08/20 23:40:35 islandusurper Exp $
+// $Id: uc_order.order_pane.inc,v 1.1.2.20 2009/11/05 15:21:54 islandusurper Exp $
 
 /**
  * @file
@@ -71,8 +71,8 @@ function uc_order_pane_ship_to($op, $arg1) {
 
     case 'edit-title':
       $output .= ' <img src="'. base_path() . drupal_get_path('module', 'uc_store')
-                .'/images/address_book.gif" alt="Select from address book." '
-                .'title="Select from address book." onclick="load_address_select('. $arg1['order_uid']['#value'] .', \'#delivery_address_select\', \'delivery\');" '
+                .'/images/address_book.gif" alt="'. t('Select from address book.') .'" '
+                .'title="'. t('Select from address book.') .'" onclick="load_address_select('. $arg1['order_uid']['#value'] .', \'#delivery_address_select\', \'delivery\');" '
                 .'style="position: relative; top: 2px; cursor: pointer;" />';
       return $output;
 
@@ -433,7 +433,7 @@ function uc_order_pane_line_items($op, $arg1) {
           $form['line_items'][$item['line_item_id']]['amount'] = array(
             '#type' => 'textfield',
             '#title' => t('Amount'),
-            '#default_value' => $item['amount'],
+            '#default_value' => uc_store_format_price_field_value($item['amount']),
             '#size' => 6,
             '#maxlength' => 13,
             '#field_prefix' => variable_get('uc_sign_after_amount', FALSE) ? '' : variable_get('uc_currency_sign', '$'),

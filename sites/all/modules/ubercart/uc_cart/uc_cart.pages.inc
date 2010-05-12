@@ -1,5 +1,5 @@
 <?php
-// $Id: uc_cart.pages.inc,v 1.1.2.17 2009/08/17 21:27:55 islandusurper Exp $
+// $Id: uc_cart.pages.inc,v 1.1.2.20 2009/10/20 20:58:07 islandusurper Exp $
 
 /**
  * @file
@@ -215,27 +215,7 @@ function uc_cart_checkout_form() {
   }
   unset($_SESSION['expanded_panes']);
 
-  $context = array(
-    'revision' => 'altered',
-    'type' => 'cart_item',
-  );
   $contents = uc_cart_get_contents();
-  foreach ($contents as $key => $item) {
-    $price_info = array(
-      'price' => $item->price,
-      'qty' => $item->qty,
-    );
-    $context['subject'] = array(
-      'cart' => $contents,
-      'cart_item' => $item,
-      'node' => node_load($item->nid),
-    );
-
-    // Get the altered price per unit, as ordered products have a locked-in
-    // price. Price altering rules may change over time, but the amount paid
-    // by the customer does not after the fact.
-    $contents[$key]->price = uc_price($price_info, $context) / $item->qty;
-  }
 
   $form['cart_contents'] = array(
     '#type' => 'hidden',
@@ -304,7 +284,32 @@ function uc_cart_checkout_form_validate($form, &$form_state) {
     $order->order_status = uc_order_state_default('in_checkout');
   }
 
+  db_query("DELETE FROM {uc_order_products} WHERE order_id = %d", $order->order_id);
   $order->products = unserialize($form_state['values']['cart_contents']);
+
+  $context = array(
+    'revision' => 'original',
+    'type' => 'order_product',
+  );
+  foreach ($order->products as $key => $item) {
+    $price_info = array(
+      'price' => $item->price,
+      'qty' => $item->qty,
+    );
+    $context['subject'] = array(
+      'order' => $order,
+      'product' => $item,
+      'node' => node_load($item->nid),
+    );
+
+    // Get the altered price per unit, as ordered products have a locked-in
+    // price. Price altering rules may change over time, but the amount paid
+    // by the customer does not after the fact.
+    $price = uc_price($price_info, $context) / $item->qty;
+    if ($order->products[$key]->price != $price) {
+      $order->products[$key]->data['altered_price'] = $price;
+    }
+  }
 
   $order->order_total = uc_order_get_total($order, TRUE);
 
@@ -487,21 +492,25 @@ function uc_cart_checkout_review_form_submit($form, &$form_state) {
   $error = FALSE;
 
   // Invoke it on a per-module basis instead of all at once.
-  foreach (module_implements('order') as $module) {
-    $result = module_invoke($module, 'order', 'submit', $order, NULL);
+  foreach (module_list() as $module) {
+    $function = $module .'_order';
+    if (function_exists($function)) {
+      // $order must be passed by reference.
+      $result = $function('submit', $order, NULL);
 
-    $msg_type = 'status';
-    if ($result[0]['pass'] === FALSE) {
-      $error = TRUE;
-      $msg_type = 'error';
-    }
-    if (!empty($result[0]['message'])) {
-      drupal_set_message($result[0]['message'], $msg_type);
-    }
+      $msg_type = 'status';
+      if ($result[0]['pass'] === FALSE) {
+        $error = TRUE;
+        $msg_type = 'error';
+      }
+      if (!empty($result[0]['message'])) {
+        drupal_set_message($result[0]['message'], $msg_type);
+      }
 
-    // Stop invoking the hooks if there was an error.
-    if ($error) {
-      break;
+      // Stop invoking the hooks if there was an error.
+      if ($error) {
+        break;
+      }
     }
   }
 

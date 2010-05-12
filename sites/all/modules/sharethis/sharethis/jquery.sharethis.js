@@ -4,7 +4,7 @@
  * A jQuery Plugin to provide easy use of the ShareThis web
  * service.
  *
- * $Id: jquery.sharethis.js,v 1.1.2.4 2010/01/26 14:27:23 robloach Exp $
+ * $Id: jquery.sharethis.js,v 1.1.2.5 2010/03/05 06:44:23 robloach Exp $
  *
  * Copyright (c) 2009 Rob Loach (http://robloach.net) Dual licensed under the
  * MIT (MIT-LICENSE.txt) and GPL (GPL-LICENSE.txt) licenses.
@@ -84,7 +84,8 @@
 
         // For strange reason we need a wrapping span around the link
         // with the attribute "id" = sharethis_[somenumber], why? don´t as me (anon), ask sharethis crew. 
-        var wrapper = jQuery('<span></span>').attr('id', 'sharethis_'+i);
+        var a = i + 1;
+        var wrapper = jQuery('<span></span>').attr('id', 'sharethis_'+a);
         element.wrap(wrapper).replaceWith(share.button);
       });
     });

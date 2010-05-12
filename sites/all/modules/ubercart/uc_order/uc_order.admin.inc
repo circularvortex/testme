@@ -1,5 +1,5 @@
 <?php
-// $Id: uc_order.admin.inc,v 1.1.2.23 2009/08/20 23:40:35 islandusurper Exp $
+// $Id: uc_order.admin.inc,v 1.1.2.28 2009/11/18 21:08:06 islandusurper Exp $
 
 /**
  * @file
@@ -516,6 +516,11 @@ function uc_order_admin($sql = NULL, $args = NULL, $search = FALSE) {
     );
   }
 
+  drupal_add_js(array(
+    'ucURL' => array(
+      'adminOrders' => url('admin/store/orders/'),
+    ),
+  ), 'setting');
   drupal_add_js(drupal_get_path('module', 'uc_order') .'/uc_order.js');
 
   if ($search === FALSE) {
@@ -616,15 +621,8 @@ function uc_order_select_form_submit($form, &$form_state) {
 /**
  * Create a new order and redirect to its edit screen.
  */
-function uc_order_create($customer = NULL) {
-  global $user;
-
-  if ($customer !== NULL) {
-    $order = uc_order_new($customer->uid, 'post_checkout');
-    uc_order_comment_save($order->order_id, $user->uid, t('Order created by the administration.'), 'admin');
-    drupal_goto('admin/store/orders/'. $order->order_id .'/edit');
-  }
-
+function uc_order_create() {
+  drupal_add_js(array('ucURL' => array('adminOrders' => url('admin/store/orders/'))), 'setting');
   drupal_add_js(drupal_get_path('module', 'uc_order') .'/uc_order.js');
 
   $output = '<div id="customer-search-link" style="position: relative; top: 2px; cursor: pointer;" '
@@ -691,7 +689,12 @@ function uc_order_create_form() {
  * @see uc_order_create_form()
  */
 function uc_order_create_form_submit($form, &$form_state) {
-  uc_order_create(user_load(array('uid' => $form_state['values']['uid'])));
+  global $user;
+
+  $order = uc_order_new($form_state['values']['uid'], 'post_checkout');
+  uc_order_comment_save($order->order_id, $user->uid, t('Order created by the administration.'), 'admin');
+
+  $form_state['redirect'] = 'admin/store/orders/'. $order->order_id .'/edit';
 }
 
 /**
@@ -945,6 +948,7 @@ function uc_order_select_customer_form($form_state, $options = NULL) {
       '#title' => t('Select a customer'),
       '#size' => 7,
       '#options' => $options,
+      '#default_value' => key($options),
       '#attributes' => array('ondblclick' => 'return select_customer_search();'),
     );
   }
@@ -1020,18 +1024,25 @@ function uc_order_history($user) {
     array('data' => t('Total'), 'field' => 'o.order_total')
   );
 
-  $result = pager_query("SELECT o.order_id, o.created, os.title, SUM(op.qty) AS products, o.order_total AS total FROM {uc_orders} AS o LEFT JOIN {uc_order_statuses} AS os ON o.order_status = os.order_status_id LEFT JOIN {uc_order_products} AS op ON o.order_id = op.order_id WHERE o.uid = %d AND o.order_status IN ". uc_order_status_list('general', TRUE) ." GROUP BY o.order_id, o.created, os.title, o.order_total". tablesort_sql($header), 20, 0, "SELECT COUNT(*) FROM {uc_orders} WHERE uid = %d AND order_status NOT IN ". uc_order_status_list('specific', TRUE), $user->uid);
+  $rows = array();
+
   $context = array(
     'revision' => 'themed-original',
     'type' => 'amount',
   );
+
+  $result = pager_query("SELECT o.order_id, o.created, os.title, SUM(op.qty) AS products, o.order_total AS total FROM {uc_orders} AS o LEFT JOIN {uc_order_statuses} AS os ON o.order_status = os.order_status_id LEFT JOIN {uc_order_products} AS op ON o.order_id = op.order_id WHERE o.uid = %d AND o.order_status IN ". uc_order_status_list('general', TRUE) ." GROUP BY o.order_id, o.created, os.title, o.order_total". tablesort_sql($header), 20, 0, "SELECT COUNT(*) FROM {uc_orders} WHERE uid = %d AND order_status NOT IN ". uc_order_status_list('specific', TRUE), $user->uid);
+
   // Build a table based on the customer's orders.
   while ($order = db_fetch_object($result)) {
     $context['subject'] = array('order' => $order);
+
     $link = l($order->order_id, 'user/'. $user->uid .'/order/'. $order->order_id);
+
     if (user_access('view all orders')) {
       $link .= '<span class="order-admin-icons">'. uc_order_actions($order, TRUE) .'</span>';
     }
+
     $rows[] = array(
       array('data' => format_date($order->created, 'custom', variable_get('uc_date_format_default', 'm/d/Y'))),
       array('data' => $link, 'nowrap' => 'nowrap'),
@@ -1041,9 +1052,12 @@ function uc_order_history($user) {
     );
   }
 
-  $output = theme('table', $header, $rows, array('class' => 'uc-order-history')) . theme('pager', NULL, 20, 0);
+  if (empty($rows)) {
+    $rows[] = array(array('data' => t('No orders available.'), 'colspan' => 5));
+  }
 
-  return $output;
+  return theme('table', $header, $rows, array('class' => 'uc-order-history'))
+       . theme('pager', NULL, 20, 0);
 }
 
 /**
@@ -1216,12 +1230,27 @@ function uc_order_edit_form_submit($form, &$form_state) {
     }
   }
 
+  if (module_exists('uc_stock')) {
+    $qtys = array();
+    foreach ($order->products as $product) {
+      $qtys[$product->order_product_id] = $product->qty;
+    }
+  }
+
   unset($order->products);
   if (is_array($_POST['products'])) {
     foreach ($_POST['products'] as $product) {
       if (!isset($product['remove']) && intval($product['qty']) > 0) {
         $product['data'] = unserialize($product['data']);
-        $order->products[] = (object) $product;
+        $product = (object)$product;
+        $order->products[] = $product;
+
+        if (module_exists('uc_stock')) {
+          $temp = $product->qty;
+          $product->qty = $product->qty - $qtys[$product->order_product_id];
+          uc_stock_decrement_product_stock($product, 0, $order);
+          $product->qty = $temp;
+        }
       }
       else {
         $log['remove_'. $product['nid']] = $product['title'] .' removed from order.';
@@ -1278,14 +1307,20 @@ function uc_order_edit_products($order) {
       $product->price = $product->sell_price;
       $product->data = module_invoke_all('add_to_cart_data', $form_state['values']);
 
-      module_invoke_all('cart_item', 'load', $product);
+      foreach (module_list() as $module) {
+        $function = $module .'_cart_item';
+        if (function_exists($function)) {
+          // $product must be passed by reference.
+          $function('load', $product);
+        }
+      }
 
       $price_info = array(
         'price' => $product->price,
         'qty' => 1,
       );
       $context = array(
-        'revision' => 'altered',
+        'revision' => 'original',
         'type' => 'order_product',
         'subject' => array(
           'order' => $order,
@@ -1301,9 +1336,20 @@ function uc_order_edit_products($order) {
       if (variable_get('uc_order_logging', TRUE)) {
         uc_order_log_changes($order->order_id, array('add' => 'Added ('. $product->qty .') '. $product->title .' to order.'));
       }
+
+      // Decrement stock?
+      if (module_exists('uc_stock')) {
+        uc_stock_decrement_product_stock($product, 0, $order);
+      }
       break;
     case 'remove':
-      db_query("DELETE FROM {uc_order_products} WHERE order_product_id = %d", intval($_POST['opid']));
+      $order_product_id = intval($_POST['opid']);
+      // Put back the stock?
+      if (module_exists('uc_stock')) {
+        $product = db_fetch_object(db_query("SELECT model, qty FROM {uc_order_products} WHERE order_product_id = %d", $order_product_id));
+        uc_stock_adjust($product->model, $product->qty);
+      }
+      db_query("DELETE FROM {uc_order_products} WHERE order_product_id = %d", $order_product_id);
       break;
   }
 
@@ -1378,14 +1424,14 @@ function uc_order_edit_products_form($form_state, $products) {
       );
       $form['products'][$i]['cost'] = array(
         '#type' => 'textfield',
-        '#value' => $products[$i]->cost,
+        '#value' => uc_store_format_price_field_value($products[$i]->cost),
         '#name' => "products[$i][cost]",
         '#parents' => array(),
         '#size' => 5,
       );
       $form['products'][$i]['price'] = array(
         '#type' => 'textfield',
-        '#value' => $products[$i]->price,
+        '#value' => uc_store_format_price_field_value($products[$i]->price),
         '#name' => "products[$i][price]",
         '#parents' => array(),
         '#size' => 5,
@@ -1760,4 +1806,3 @@ function uc_order_delete_confirm_form_submit($form, &$form_state) {
 
   $form_state['redirect'] = 'admin/store/orders';
 }
-

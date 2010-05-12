@@ -1,5 +1,5 @@
 <?php
-// $Id: uc_views.views.inc,v 1.9 2009/04/07 11:04:35 madsph Exp $
+// $Id: uc_views.views.inc,v 1.13.2.5.2.11 2009/12/16 08:30:45 madsph Exp $
 /**
  * @file
  * Views 2 hooks and callback registries.
@@ -15,7 +15,18 @@ function uc_views_views_data() {
   //Make the uc_order_products table visible for Views module
   $order_products = drupal_get_schema('uc_order_products');
   $data['uc_order_products']['table']['group'] = t('Order product');
+  $data['uc_order_products']['table']['base'] = array(
+    'field' => 'order_product_id',
+    'title' => t('Order Products'),
+    'help' => t('Product orders placed in your Ubercart store.'),
+    'weight' => -10,
+  );
   $data['uc_order_products']['table']['join']['node'] = array(
+      'left_field' => 'nid',
+      'field' => 'nid',
+  );
+
+  $data['uc_products']['table']['join']['uc_order_products'] = array(
       'left_field' => 'nid',
       'field' => 'nid',
   );
@@ -39,7 +50,7 @@ function uc_views_views_data() {
   );
 
   $data['uc_order_products']['qty'] = array(
-    'title' => t('qty'),
+    'title' => t('Qty'),
     'help' => $order_products['fields']['qty']['description'],
     'field' => array(
       'handler' => 'views_handler_field',
@@ -56,303 +67,91 @@ function uc_views_views_data() {
     'title' => t('Price'),
     'help' => $order_products['fields']['price']['description'],
     'field' => array(
-      'handler' => 'uc_product_handler_field_price',
+      'handler' => 'uc_views_handler_field_money_amount',
       'click sortable' => TRUE,
+      'float' => TRUE,
     ),
     'sort' => array(
       'handler' => 'views_handler_sort',
     ),
     'filter' => array(
-      'handler' => 'views_handler_filter_numeric',
+      'handler' => 'views_handler_filter_float',
     ),
   );
   $data['uc_order_products']['cost'] = array(
     'title' => t('Cost'),
     'help' => $order_products['fields']['cost']['description'],
     'field' => array(
-      'handler' => 'uc_product_handler_field_price',
+      'handler' => 'uc_views_handler_field_money_amount',
+      'click sortable' => TRUE,
+      'float' => TRUE,
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_float',
+    ),
+  );
+  $data['uc_order_products']['weight'] = array(
+    'title' => t('Weight'),
+    'help' => $order_products['fields']['weight']['description'],
+    'field' => array(
+      'additional fields' => array(
+      'weight_units' => array(
+        'table' => 'uc_products',
+        'field' => 'weight_units',
+      ),      ),
+      'handler' => 'uc_product_handler_field_weight',
+      'click sortable' => TRUE,
+      'float' => TRUE,
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_float',
+    ),
+  );
+  $data['uc_order_products']['nid'] = array(
+    'title' => t('Product NID'),
+    'help' => t('The Node ID of the ordered product'),
+    'relationship' => array(
+      'base' => 'node',
+      'field' => 'nid',
+      'handler' => 'views_handler_relationship',
+      'title' => t('Product NID'),
+    ),
+  );
+  //////////Added by jd
+  $data['uc_order_products']['title'] = array(
+    'title' => t('Product Title'),
+    'help' => $order_products['fields']['title']['description'],
+    'field' => array(
+      'handler' => 'views_handler_field',
       'click sortable' => TRUE,
     ),
     'sort' => array(
       'handler' => 'views_handler_sort',
     ),
     'filter' => array(
-      'handler' => 'views_handler_filter_numeric',
+      'handler' => 'views_handler_filter_string',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_string',
     ),
   );
+
+  $data['uc_order_products']['data'] = array(
+      'title' => 'Product Attributes',
+      'help' => 'Filter by the value of a purchased products selected attributes.',
+      'filter' => array(
+        'handler' => 'views_handler_filter_in_operator',
+      ),
+    );
+  /////////////////////
 
   $data['uc_order_products']['ordering'] = array(
-    'title' => t('List position'),
-    'help' => t('The default sort criteria in the catalog.'),
-    'sort' => array(
-      'handler' => 'views_handler_sort',
-    ),
-  );
-
-
-  //Make the uc_order_products_qty_vw view visible for Views module
-  $data['uc_order_products_qty_vw']['table']['group'] = t('Order product');
-  $data['uc_order_products_qty_vw']['table']['join']['node'] = array(
-      'left_field' => 'nid',
-      'field' => 'nid',
-  );
-  $data['uc_order_products_qty_vw']['order_count'] = array(
-    'title' => t('order_count'),
-    'help' => t('The number of orderlines with the product.'),
-    'field' => array(
-      'handler' => 'views_handler_field',
-      'click sortable' => TRUE,
-    ),
-    'sort' => array(
-      'handler' => 'views_handler_sort',
-    ),
-    'filter' => array(
-      'handler' => 'views_handler_filter_numeric',
-    ),
-  );
-  $data['uc_order_products_qty_vw']['avg_qty'] = array(
-    'title' => t('avg_qty'),
-    'help' => t('The average amount ordered.'),
-    'field' => array(
-      'handler' => 'views_handler_field',
-      'click sortable' => TRUE,
-    ),
-    'sort' => array(
-      'handler' => 'views_handler_sort',
-    ),
-    'filter' => array(
-      'handler' => 'views_handler_filter_numeric',
-    ),
-  );
-  $data['uc_order_products_qty_vw']['sum_qty'] = array(
-    'title' => t('sum_qty'),
-    'help' => t('The summed amount of all orders.'),
-    'field' => array(
-      'handler' => 'views_handler_field',
-      'click sortable' => TRUE,
-    ),
-    'sort' => array(
-      'handler' => 'views_handler_sort',
-    ),
-    'filter' => array(
-      'handler' => 'views_handler_filter_numeric',
-    ),
-  );
-  $data['uc_order_products_qty_vw']['max_qty'] = array(
-    'title' => t('max_qty'),
-    'help' => t('The maximum amount ordered.'),
-    'field' => array(
-      'handler' => 'views_handler_field',
-      'click sortable' => TRUE,
-    ),
-    'sort' => array(
-      'handler' => 'views_handler_sort',
-    ),
-    'filter' => array(
-      'handler' => 'views_handler_filter_numeric',
-    ),
-  );
-  $data['uc_order_products_qty_vw']['min_qty'] = array(
-    'title' => t('min_qty'),
-    'help' => t('The minimum amount ordered.'),
-    'field' => array(
-      'handler' => 'views_handler_field',
-      'click sortable' => TRUE,
-    ),
-    'sort' => array(
-      'handler' => 'views_handler_sort',
-    ),
-    'filter' => array(
-      'handler' => 'views_handler_filter_numeric',
-    ),
-  );
-  $data['uc_order_products_qty_vw']['ordering'] = array(
-    'title' => t('List position'),
-    'help' => t('The default sort criteria in the catalog.'),
-    'sort' => array(
-      'handler' => 'views_handler_sort',
-    ),
-  );
-
-
-  //Make the uc_order_products_user_vw view visible for Views module
-  $data['uc_order_products_user_vw']['table']['group'] = t('Order product');
-  $data['uc_order_products_user_vw']['table']['join']['node'] = array(
-      'left_field' => 'nid',
-      'field' => 'nid',
-  );
-  $data['uc_order_products_user_vw']['table']['join']['users'] = array(
-      'left_field' => 'uid',
-      'field' => 'uid',
-  );
-  $data['uc_order_products_user_vw']['uid'] = array(
-    'title' => t('user_id'),
-    'help' => t('The id of the user.'),
-    'field' => array(
-      'handler' => 'views_handler_field_user',
-      'click sortable' => TRUE,
-    ),
-     'argument' => array(
-      'handler' => 'views_handler_argument_user_uid',
-      'name field' => 'name', // the field to display in the summary.
-      'numeric' => TRUE,
-      'validate type' => 'uid',
-    ),
-     'sort' => array(
-      'handler' => 'views_handler_sort',
-    ),
-    'filter' => array(
-      'handler' => 'views_handler_filter_numeric',
-    ),
-  );
-  $data['uc_order_products_user_vw']['order_count'] = array(
-    'title' => t('user_order_count'),
-    'help' => t('The number of orderlines with the product for the user.'),
-    'field' => array(
-      'handler' => 'views_handler_field',
-      'click sortable' => TRUE,
-    ),
-    'sort' => array(
-      'handler' => 'views_handler_sort',
-    ),
-    'filter' => array(
-      'handler' => 'views_handler_filter_numeric',
-    ),
-  );
-  $data['uc_order_products_user_vw']['avg_qty'] = array(
-    'title' => t('user_avg_qty'),
-    'help' => t('The average amount ordered for the user.'),
-    'field' => array(
-      'handler' => 'views_handler_field',
-      'click sortable' => TRUE,
-    ),
-    'sort' => array(
-      'handler' => 'views_handler_sort',
-    ),
-    'filter' => array(
-      'handler' => 'views_handler_filter_numeric',
-    ),
-  );
-  $data['uc_order_products_user_vw']['sum_qty'] = array(
-    'title' => t('user_sum_qty'),
-    'help' => t('The summed amount of all orders for the user.'),
-    'field' => array(
-      'handler' => 'views_handler_field',
-      'click sortable' => TRUE,
-    ),
-    'sort' => array(
-      'handler' => 'views_handler_sort',
-    ),
-    'filter' => array(
-      'handler' => 'views_handler_filter_numeric',
-    ),
-  );
-  $data['uc_order_products_user_vw']['max_qty'] = array(
-    'title' => t('user_max_qty'),
-    'help' => t('The maximum amount ordered for the user.'),
-    'field' => array(
-      'handler' => 'views_handler_field',
-      'click sortable' => TRUE,
-    ),
-    'sort' => array(
-      'handler' => 'views_handler_sort',
-    ),
-    'filter' => array(
-      'handler' => 'views_handler_filter_numeric',
-    ),
-  );
-  $data['uc_order_products_user_vw']['min_qty'] = array(
-    'title' => t('user_min_qty'),
-    'help' => t('The minimum amount ordered for the user.'),
-    'field' => array(
-      'handler' => 'views_handler_field',
-      'click sortable' => TRUE,
-    ),
-    'sort' => array(
-      'handler' => 'views_handler_sort',
-    ),
-    'filter' => array(
-      'handler' => 'views_handler_filter_numeric',
-    ),
-  );
-  $data['uc_order_products_user_vw']['ordering'] = array(
-    'title' => t('List position'),
-    'help' => t('The default sort criteria in the catalog.'),
-    'sort' => array(
-      'handler' => 'views_handler_sort',
-    ),
-  );
-
-
-  //Make the uc_order_products_pair_vw view visible for Views module
-  $data['uc_order_products_pair_vw']['table']['group'] = t('Order product');
-  $data['uc_order_products_pair_vw']['table']['join']['node'] = array(
-      'left_field' => 'nid',
-      'field' => 'pair_nid',
-  );
-  $data['uc_order_products_pair_vw']['nid'] = array(
-    'title' => t('pairs_product_nid'),
-    'help' => t('The nid of the product for which we are seeking pairs.'),
-    'field' => array(
-      'handler' => 'views_handler_field_node',
-      'click sortable' => TRUE,
-    ),
-     'argument' => array(
-      'handler' => 'views_handler_argument_node_nid',
-      'name field' => 'title', // the field to display in the summary.
-      'numeric' => TRUE,
-      'validate type' => 'nid',
-    ),
-     'sort' => array(
-      'handler' => 'views_handler_sort',
-    ),
-    'filter' => array(
-      'handler' => 'views_handler_filter_numeric',
-    ),
-  );
-  $data['uc_order_products_pair_vw']['pair_nid'] = array(
-    'title' => t('pairs_product_pair_nid'),
-    'help' => t('The nid of the pair product.'),
-    'field' => array(
-      'handler' => 'views_handler_field_node',
-      'click sortable' => TRUE,
-    ),
-     'sort' => array(
-      'handler' => 'views_handler_sort',
-    ),
-    'filter' => array(
-      'handler' => 'views_handler_filter_numeric',
-    ),
-  );
-  $data['uc_order_products_pair_vw']['order_count'] = array(
-    'title' => t('pairs_order_count'),
-    'help' => t('The number of orders in which the product pair has occured along with the product with nid.'),
-    'field' => array(
-      'handler' => 'views_handler_field',
-      'click sortable' => TRUE,
-    ),
-    'sort' => array(
-      'handler' => 'views_handler_sort',
-    ),
-    'filter' => array(
-      'handler' => 'views_handler_filter_numeric',
-    ),
-  );
-  $data['uc_order_products_pair_vw']['pair_sum_qty'] = array(
-    'title' => t('pairs_sum_qty'),
-    'help' => t('The summed qty purchased on orders which also include the product with nid.'),
-    'field' => array(
-      'handler' => 'views_handler_field',
-      'click sortable' => TRUE,
-    ),
-    'sort' => array(
-      'handler' => 'views_handler_sort',
-    ),
-    'filter' => array(
-      'handler' => 'views_handler_filter_numeric',
-    ),
-  );
-  $data['uc_order_products_pair_vw']['ordering'] = array(
     'title' => t('List position'),
     'help' => t('The default sort criteria in the catalog.'),
     'sort' => array(
@@ -372,40 +171,49 @@ function uc_views_views_data() {
     'help' => t('Orders placed in your Ubercart store.'),
     'weight' => -10,
   );
-  $data['users']['table']['join'] = array(
+  $data['users']['table']['join']['uc_orders'] = array(
+    'left_field' => 'uid',
+    'field' => 'uid',
+  );
+  $data['users_roles']['table']['join'] = array(
     'uc_orders' => array(
+      'left_table' => 'users',
       'left_field' => 'uid',
       'field' => 'uid',
     ),
   );
-  $data['uc_order_products']['table']['join'] = array(
-    'uc_orders' => array(
-      'left_field' => 'order_id',
-      'field' => 'order_id',
-    ),
+  $data['uc_order_products']['table']['join']['uc_orders'] = array(
+    'left_field' => 'order_id',
+    'field' => 'order_id',
   );
-  $data['node']['table']['join'] = array(
-    'uc_orders' => array(
-      'left_table' => 'uc_order_products',
-      'left_field' => 'order_id',
-      'field' => 'order_id',
-    ),
-    'uc_order_products' => array(
-      'left_field' => 'nid',
-      'field' => 'nid',
-    ),
+  $data['node']['table']['join']['uc_orders'] = array(
+    'left_table' => 'uc_order_products',
+    'left_field' => 'nid',
+    'field' => 'nid',
   );
-  $data['uc_orders']['table']['join'] = array(
-    'node' => array(
+
+  $data['term_node']['table']['join'] = array(
+    'uc_orders' => array(
       'left_table' => 'uc_order_products',
       'left_field' => 'nid',
       'field' => 'nid',
     ),
-    'uc_order_products' => array(
-      'left_field' => 'order_id',
-      'field' => 'order_id',
-    ),
   );
+
+  $data['node']['table']['join']['uc_order_products'] = array(
+    'left_field' => 'nid',
+    'field' => 'nid',
+  );
+  $data['uc_orders']['table']['join']['node'] = array(
+    'left_table' => 'uc_order_products',
+    'left_field' => 'order_id',
+    'field' => 'order_id',
+  );
+  $data['uc_orders']['table']['join']['uc_order_products'] = array(
+    'left_field' => 'order_id',
+    'field' => 'order_id',
+  );
+
   //sammys: optionally link to order and allow order_id as argument
   $data['uc_orders']['order_id'] = array(
     'title' => t('Order ID'),
@@ -428,11 +236,20 @@ function uc_views_views_data() {
       'validate type' => 'order_id',
     ),
   );
+
+//  $data['uc_orders']['distinct'] = array(
+//    'title' => t('Distinct Order ID'),
+//    'help' => t('Forces the query to distinctly select order id\'s, reducing duplicates.'),
+//    'filter' => array(
+//      'handler' => 'uc_views_handler_filter_distinct',
+//    ),
+//  );
+//
   $data['uc_orders']['order_status'] = array(
     'title' => t('Order Status'),
     'help' => $order_schema['fields']['order_status']['description'],
     'field' => array(
-      'handler' => 'views_handler_field',
+      'handler' => 'uc_views_handler_field_order_status',
       'click sortable' => TRUE,
     ),
      'sort' => array(
@@ -473,14 +290,15 @@ function uc_views_views_data() {
     'title' => t('Order total'),
     'help' => $order_schema['fields']['order_total']['description'],
     'field' => array(
-      'handler' => 'uc_product_handler_field_price',
+      'handler' => 'uc_views_handler_field_money_amount',
       'click sortable' => TRUE,
+      'float' => TRUE,
     ),
      'sort' => array(
       'handler' => 'views_handler_sort',
     ),
     'filter' => array(
-      'handler' => 'views_handler_filter_numeric',
+      'handler' => 'views_handler_filter_float',
     ),
   );
   $data['uc_orders']['payment_method'] = array(
@@ -492,6 +310,9 @@ function uc_views_views_data() {
     ),
      'sort' => array(
       'handler' => 'views_handler_sort',
+    ),
+    'filter' => array(
+      'handler' => 'uc_views_handler_filter_payment_method',
     ),
   );
   $data['uc_orders']['created'] = array(
@@ -508,6 +329,26 @@ function uc_views_views_data() {
       'handler' => 'views_handler_filter_date',
     ),
   );
+  $data['uc_orders']['product_count'] = array(
+    'title' => t('Order product count'),
+    'help' => $order_schema['fields']['product_count']['description']." (currently only available for dev versions of UC)",
+    'field' => array(
+      'handler' => 'views_handler_field_numeric',
+      'click sortable' => TRUE,
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_numeric',
+    ),
+  );
+
+  //Use the sleeker date_api views handler if the module is available
+  if(module_exists('date_api')) {
+    $data['uc_orders']['created']['filter']['handler'] = 'date_api_filter_handler';
+  }
+
   $data['uc_orders']['modified'] = array(
     'title' => t('Order Modification Date'),
     'help' => $order_schema['fields']['modified']['description'],
@@ -522,6 +363,21 @@ function uc_views_views_data() {
       'handler' => 'views_handler_filter_date',
     ),
   );
+
+  //Use the sleeker date_api views handler if the module is available
+  if(module_exists('date_api')) {
+    $data['uc_orders']['modified']['filter']['handler'] = 'date_api_filter_handler';
+  }
+
+  $data['uc_orders']['actions'] = array(
+    'title' => t('Order Actions'),
+    'help' => 'Returns the actions a user may perform on an order.',
+    'field' => array(
+      'handler' => 'uc_views_handler_field_order_actions',
+      'click sortable' => FALSE,
+    ),
+  );
+
   $data['uc_orders']['primary_email'] = array(
     'title' => t('Email address'),
     'help' => t($order_schema['fields']['primary_email']['description']),
@@ -570,6 +426,30 @@ function uc_views_views_data() {
     }
   }
 
+  //Added by openbook
+  $comments_schema = drupal_get_schema('uc_order_comments');
+  $data['uc_order_comments']['table']['join'] = array(
+    'uc_orders' => array(
+      'left_field' => 'order_id',
+      'field' => 'order_id',
+    ),
+  );
+  $data['uc_order_comments']['table']['join'] = array(
+    'uc_order_products' => array(
+      'left_field' => 'order_id',
+      'field' => 'order_id',
+    ),
+  );
+  $data['uc_order_comments']['table']['group'] = t('Ubercart order comments');
+  $data['uc_order_comments']['message'] = array(
+    'title' => t('Order Comments'),
+    'help' => t($comments_schema['fields']['message']['description']),
+    'field' => array(
+      'handler' => 'views_handler_field',
+      'click sortable' => TRUE,
+    ),
+  );
+
   /**
    * Countries: added by sammys
    */
@@ -605,12 +485,10 @@ function uc_views_views_data() {
 
     $data[$key]['table']['group'] = t('Ubercart order');
 
-    $data[$key]['table']['join'] = array(
-      'uc_orders' => array(
-        'table' => 'uc_countries',
-        'left_field' => $value['field'],
-        'field' => 'country_id',
-      ),
+    $data[$key]['table']['join']['uc_orders'] = array(
+      'table' => 'uc_countries',
+      'left_field' => $value['field'],
+      'field' => 'country_id',
     );
     $data[$key]['country_id'] = array(
       'title' => t($value['prefix'].' country id'),
@@ -713,12 +591,10 @@ function uc_views_views_data() {
 
     $data[$key]['table']['group'] = t('Ubercart order');
 
-    $data[$key]['table']['join'] = array(
-      'uc_orders' => array(
-        'table' => 'uc_zones',
-        'left_field' => $value['field'],
-        'field' => 'zone_id',
-      ),
+    $data[$key]['table']['join']['uc_orders'] = array(
+      'table' => 'uc_zones',
+      'left_field' => $value['field'],
+      'field' => 'zone_id',
     );
     $data[$key]['zone_id'] = array(
       'title' => t($value['prefix'].' zone id'),
@@ -774,7 +650,49 @@ function uc_views_views_data() {
     );
   }
 
-
+  // Support for any module's line item, if new modules defines other line items
+  // the views cache will have to be rebuilt
+  // Although new line items views support should be defined on each module,
+  // I don't think this wider apporach would harm. At most, it will duplicate
+  // line items
+  $line_items = array();
+  foreach (_line_item_list() as $line_item) {
+    if (!in_array($line_item['id'], array('subtotal', 'tax_subtotal', 'total', 'generic'))) {
+      $line_items[$line_item['id']] = $line_item['title'];
+    }
+  }
+  foreach ($line_items as $line_item_id => $line_item_desc) {
+    $data['uc_order_line_items_' . $line_item_id]['table']['join']['uc_orders'] = array(
+    'table' => 'uc_order_line_items',
+    'left_field' => 'order_id',
+    'field' => 'order_id',
+    'extra' => array(
+      array(
+        'field' => 'type',
+          'value' => $line_item_id,
+      ),
+    ),
+  );
+    $data['uc_order_line_items_' . $line_item_id]['table']['group'] = t('Ubercart order line item');
+    $data['uc_order_line_items_' . $line_item_id]['title'] = array(
+      'title' => t('!line_item_desc title', array('!line_item_desc' => $line_item_desc)),
+      'help' => t('!line_item_desc order line item', array('!line_item_desc' => $line_item_desc)),
+    'field' => array(
+      'handler' => 'views_handler_field',
+      'click sortable' => TRUE,
+    ),
+  );
+    $data['uc_order_line_items_' . $line_item_id]['amount'] = array(
+      'title' => t('!line_item_desc amount', array('!line_item_desc' => $line_item_desc)),
+      'help' => t('!line_item_desc order line item', array('!line_item_desc' => $line_item_desc)),
+    'field' => array(
+      'handler' => 'uc_views_handler_field_money_amount',
+      'click sortable' => TRUE,
+        'float' => TRUE,
+    ),
+  );
+  }
+  
   //Make the uc_cart_products table visible for Views module
   $data['uc_cart_products']['table']['group'] = t('Cart product');
   $data['uc_cart_products']['table']['join']['node'] = array(
@@ -862,6 +780,48 @@ function uc_views_views_data() {
     ),
   );
 
+  //Extra handlers for uc_products
+  $data['uc_products']['conditionalbuyitnowbutton'] = array(
+    'title' => t('Conditional buy it now button'),
+    'help' => t('A button to add a product to the cart without quantity or attribute fields, if certain conditions are met.'),
+    'group' => t('Product'),
+    'field' => array(
+      'table' => 'node',
+      'additional fields' => array(
+        'nid' => array(
+          'table' => 'node',
+          'field' => 'nid',
+        ),      ),
+      'handler' => 'uc_views_handler_field_conditional_buyitnow',
+    ),
+  );
+  $data['uc_products']['conditionaladdtocart'] = array(
+    'title' => t('Conditional add to cart form'),
+    'help' => t("Form to put the product in the customer's cart, if certain conditions are met."),
+    'group' => t('Product'),
+    'field' => array(
+      'additional fields' => array(
+        'nid' => array(
+          'table' => 'node',
+          'field' => 'nid',
+        ),
+        'type' => array(
+          'table' => 'node',
+          'field' => 'type',
+        ),
+      ),
+      'handler' => 'uc_views_handler_field_conditional_addtocart',
+    ),
+  );
+  //Thank you hanoii for this addition
+  $data['uc_products']['ordering'] = array(
+  'field' => array(
+    'help' => t("The product list position."),
+    'handler' => 'views_handler_field_numeric',
+  ),
+);
+
+
   return $data;
 }
 
@@ -874,12 +834,22 @@ function uc_views_views_handlers() {
       'path' => drupal_get_path('module', 'uc_views') . '/views',
     ),
     'handlers' => array(
-      // filters
+      // fields
       'uc_views_handler_field_order_id' => array( 'parent' => 'views_handler_field',),
       'uc_views_handler_field_cart_user' => array('parent' => 'views_handler_field',),
+      'uc_views_handler_field_order_actions' => array( 'parent' => 'views_handler_field',),
+      'uc_views_handler_field_country' => array( 'parent' => 'views_handler_field',),
+      'uc_views_handler_field_zone' => array( 'parent' => 'views_handler_field',),
+      'uc_views_handler_field_order_status' => array( 'parent' => 'views_handler_field',),
+      'uc_views_handler_field_conditional_buyitnow' => array('parent' => 'views_handler_field',),
+      'uc_views_handler_field_conditional_addtocart' => array('parent' => 'views_handler_field',),
+      'uc_views_handler_field_money_amount' => array('parent' => 'uc_product_handler_field_price',),
+      //fiters
       'views_handler_filter_order_status' => array('parent' => 'views_handler_filter_in_operator',),
       'uc_views_handler_filter_country' => array('parent' => 'views_handler_filter_in_operator',),
       'uc_views_handler_filter_zone' => array('parent' => 'views_handler_filter_in_operator',),
+      'uc_views_handler_filter_payment_method' => array('parent' => 'views_handler_filter_in_operator',),
+//      'uc_views_handler_filter_distinct' => array('parent' => 'views_handler_filter',),
     ),
   );
 }
@@ -890,3 +860,22 @@ function uc_views_views_handlers() {
 function uc_views_views_tables_alter(&$tables) {
 }
 
+function uc_views_views_plugins() {
+  return array(
+    'module' => 'uc_views', // This just tells our themes are elsewhere.
+    'row' => array(
+      'uc_views_invoice' => array(
+        'title' => t('Invoice'),
+        'help' => t('Display the order with standard invoice view.'),
+        'handler' => 'uc_views_plugin_row_invoice_view',
+        'path' => drupal_get_path('module', 'uc_views') . '/views',
+        'theme' => 'uc_views_view_row_invoice',
+        'theme path' => drupal_get_path('module', 'uc_views') . '/theme',
+        'theme file' => 'theme.inc',
+        'base' => array('uc_orders'), // only works with 'uc_orders' as base.
+        //'uses options' => TRUE,
+        'type' => 'normal',
+      ),
+    ),
+  );
+}

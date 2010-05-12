@@ -6,9 +6,9 @@ package = Ubercart - payment
 core = 6.x
 php = 5.0
 
-; Information added by drupal.org packaging script on 2009-08-20
-version = "6.x-2.0-rc6"
+; Information added by drupal.org packaging script on 2009-11-18
+version = "6.x-2.2"
 core = "6.x"
 project = "ubercart"
-datestamp = "1250812046"
+datestamp = "1258583492"
 

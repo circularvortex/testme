@@ -1,5 +1,5 @@
 <?php
-// $Id: uc_attribute.admin.inc,v 1.1.2.20 2009/08/20 23:40:34 islandusurper Exp $
+// $Id: uc_attribute.admin.inc,v 1.1.2.24 2009/10/20 20:58:06 islandusurper Exp $
 
 /**
  * @file
@@ -372,13 +372,13 @@ function uc_attribute_option_form($form_state, $attribute, $option = NULL) {
   $form['adjustments']['cost'] = array(
     '#type' => 'textfield',
     '#title' => t('Cost'),
-    '#default_value' => $option->cost,
+    '#default_value' => uc_store_format_price_field_value($option->cost),
     '#weight' => 1,
   );
   $form['adjustments']['price'] = array(
     '#type' => 'textfield',
     '#title' => t('Price'),
-    '#default_value' => $option->price,
+    '#default_value' => uc_store_format_price_field_value($option->price),
     '#weight' => 2,
   );
   $form['adjustments']['weight'] = array(
@@ -467,7 +467,9 @@ function uc_attribute_option_delete_confirm_submit($form, &$form_state) {
   if ($form_state['values']['confirm']) {
     $match = 'i:'. $form_state['values']['aid'] .';s:'. strlen($form_state['values']['oid']) .':"'. $form_state['values']['oid'] .'";';
     db_query("DELETE FROM {uc_product_adjustments} WHERE combination LIKE '%%%s%%'", $match);
-    db_query("DELETE ao, co, po FROM {uc_attribute_options} AS ao LEFT JOIN {uc_product_options} AS po ON ao.oid = po.oid LEFT JOIN {uc_class_attribute_options} AS co ON ao.oid = co.oid WHERE ao.oid = %d", $form_state['values']['oid']);
+    db_query("DELETE FROM {uc_class_attribute_options} WHERE EXISTS (SELECT * FROM {uc_attribute_options} AS ao WHERE {uc_class_attribute_options}.oid = ao.oid AND ao.oid = %d)", $form_state['values']['oid']);
+    db_query("DELETE FROM {uc_product_options} WHERE EXISTS (SELECT * FROM {uc_attribute_options} AS ao WHERE {uc_product_options}.oid = ao.oid AND ao.oid = %d)", $form_state['values']['oid']);
+    db_query("DELETE FROM {uc_attribute_options} WHERE oid = %d", $form_state['values']['oid']);
   }
   $form_state['redirect'] = 'admin/store/attributes/'. $form_state['values']['aid'] .'/options';
 }
@@ -616,6 +618,8 @@ function uc_object_attributes_form($form_state, $object, $type, $view = 'overvie
  * @see uc_object_attributes_form()
  */
 function theme_uc_object_attributes_form($form) {
+  $output = '';
+
   if ($form['view']['#value'] == 'overview') {
     $header = array(t('Remove'), t('Name'), t('Label'), t('Default'), t('Required'), t('List position'), t('Display'));
 
@@ -645,6 +649,11 @@ function theme_uc_object_attributes_form($form) {
 
     drupal_add_tabledrag('uc-attribute-table', 'order', 'sibling', 'uc-attribute-table-weight');
     $output = theme('table', $header, $rows, array('id' => 'uc-attribute-table'));
+  }
+  else {
+    $output = '<div class="uc-attributes-add-link">';
+    $output .= t('You may add more attributes <a href="!url">here</a>.', array('!url' => url('admin/store/attributes/add')));
+    $output .= '</div>';
   }
 
   $output .= drupal_render($form);
@@ -791,12 +800,12 @@ function uc_object_options_form($form_state, $object, $type) {
         );
         $form['attributes'][$aid]['options'][$oid]['cost'] = array(
           '#type' => 'textfield',
-          '#default_value' => is_null($option->cost) ? $option->default_cost : $option->cost,
+          '#default_value' => uc_store_format_price_field_value(is_null($option->cost) ? $option->default_cost : $option->cost),
           '#size' => 6,
         );
         $form['attributes'][$aid]['options'][$oid]['price'] = array(
           '#type' => 'textfield',
-          '#default_value' => is_null($option->price) ? $option->default_price : $option->price,
+          '#default_value' => uc_store_format_price_field_value(is_null($option->price) ? $option->default_price : $option->price),
           '#size' => 6,
         );
         $form['attributes'][$aid]['options'][$oid]['weight'] = array(
@@ -924,7 +933,7 @@ function theme_uc_object_options_form($form) {
  *     #options - Array of option names
  * @return Themed set of attribute options.
  */
-function theme_uc_product_attributes(&$element) {
+function theme_uc_product_attributes($element) {
   $option_rows = array();
 
   foreach (element_children($element) as $key) {

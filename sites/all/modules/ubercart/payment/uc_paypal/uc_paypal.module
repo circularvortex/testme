@@ -1,5 +1,5 @@
 <?php
-// $Id: uc_paypal.module,v 1.5.2.15 2009/08/17 21:27:56 islandusurper Exp $
+// $Id: uc_paypal.module,v 1.5.2.19 2009/11/18 21:08:06 islandusurper Exp $
 
 /**
  * @file
@@ -58,9 +58,10 @@ function uc_paypal_menu() {
   );
 
   // Callback functions for Website Payments Standard.
-  $items['uc_paypal/wps/complete'] = array(
+  $items['uc_paypal/wps/complete/%uc_order'] = array(
     'title' => 'PayPal payment complete',
     'page callback' => 'uc_paypal_complete',
+    'page arguments' => array(3),
     'access arguments' => array('access content'),
     'type' => MENU_CALLBACK,
     'file' => 'uc_paypal.pages.inc',
@@ -86,6 +87,14 @@ function uc_paypal_ipn_access() {
  */
 function uc_paypal_perm() {
   return array('administer paypal');
+}
+
+/**
+ * Implementation of hook_init().
+ */
+function uc_paypal_init() {
+  global $conf;
+  $conf['i18n_variables'][] = 'uc_paypal_wps_checkout_button';
 }
 
 /**
@@ -394,8 +403,9 @@ function uc_paypal_wpp_charge($order_id, $amount, $data) {
 
   switch ($nvp_response['ACK']) {
     case 'SuccessWithWarning':
-      watchdog('uc_payment', '<b>@type succeeded with a warning.</b>'. _uc_paypal_build_error_messages($nvp_response),
+      watchdog('uc_payment', '<b>@type succeeded with a warning.</b>!paypal_message',
         array(
+          '!paypal_message' => _uc_paypal_build_error_messages($nvp_response),
           '@type' => $types[$data['txn_type']],
         ),
         WATCHDOG_WARNING,
@@ -475,7 +485,7 @@ function _uc_paypal_build_error_messages($nvp_response) {
   $code = 0;
   $message = '';
   while (array_key_exists('L_SEVERITYCODE'. $code, $nvp_response)) {
-    $message .= '<br /><b>'. $nvp_response['L_SEVERITYCODE'. $code] .':</b> '. $nvp_response['L_ERRORCODE'. $code] .': '. $nvp_response['L_LONGMESSAGE'. $code];
+    $message .= '<br /><b>'. check_plain($nvp_response['L_SEVERITYCODE'. $code]) .':</b> '. check_plain($nvp_response['L_ERRORCODE'. $code]) .': '. check_plain($nvp_response['L_LONGMESSAGE'. $code]);
     $code++;
   }
   return $message;
@@ -961,7 +971,7 @@ function uc_paypal_wps_form($form_state, $order) {
         $o = 0;
         foreach ($item->data['attributes'] as $name => $setting) {
           $data['on'. $o .'_'. $i] = $name;
-          $data['os'. $o .'_'. $i] = $setting;
+          $data['os'. $o .'_'. $i] = implode(', ', (array)$setting);
           $o++;
         }
       }
@@ -1017,7 +1027,7 @@ function uc_paypal_api_request($request, $server) {
   curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 0);
   $response = curl_exec($ch);
   if ($error = curl_error($ch)) {
-    watchdog('uc_paypal', $error, NULL, WATCHDOG_ERROR);
+    watchdog('uc_paypal', '!error', array('!error' => $error), WATCHDOG_ERROR);
   }
   curl_close($ch);
 

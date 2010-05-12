@@ -1,5 +1,5 @@
 <?php
-// $Id: uc_cart.module,v 1.15.2.26 2009/08/17 21:27:55 islandusurper Exp $
+// $Id: uc_cart.module,v 1.15.2.31 2009/11/02 22:04:08 islandusurper Exp $
 
 /**
  * @file
@@ -175,34 +175,28 @@ function uc_cart_menu() {
 }
 
 /**
- * Implementation of hook_enable().
+ * Implementation of hook_imagecache_default_presets().
  */
-function uc_cart_enable() {
-  // Create an Imagecache preset for the cart view form.
-  if (module_exists('imagecache')) {
-    $preset_name = 'cart';
-    $preset = imagecache_preset_by_name($preset_name);
-    if (empty($preset)) {
-      // No preset of that name, so make a new one.
-      $preset = imagecache_preset_save(array('presetname' => $preset_name));
-    }
+function uc_cart_imagecache_default_presets() {
+  $presets = array();
 
-    $actions = imagecache_preset_actions($preset);
-    if (empty($actions)) {
-      // The preset has no actions, so scale the image.
-      $action = array(
+  $presets['cart'] = array(
+    'presetname' => 'cart',
+    'actions' => array(
+      array(
+        'weight' => '0',
+        'module' => 'uc_cart',
         'action' => 'imagecache_scale',
-        'presetid' => $preset['presetid'],
-        'weight' => 0,
         'data' => array(
           'width' => '50',
           'height' => '50',
           'upscale' => 0,
         ),
-      );
-      imagecache_action_save($action);
-    }
-  }
+      ),
+    ),
+  );
+
+  return $presets;
 }
 
 /**
@@ -255,6 +249,25 @@ function uc_cart_theme() {
       'arguments' => array('message' => ''),
     ),
   );
+}
+
+/**
+ * Implementation of hook_init().
+ */
+function uc_cart_init() {
+  global $conf;
+  $conf['i18n_variables'][] = 'uc_cart_breadcrumb_text';
+  $conf['i18n_variables'][] = 'uc_cart_help_text';
+  $conf['i18n_variables'][] = 'uc_cart_new_account_details';
+  $conf['i18n_variables'][] = 'uc_checkout_instructions';
+  $conf['i18n_variables'][] = 'uc_checkout_review_instructions';
+  $conf['i18n_variables'][] = 'uc_continue_shopping_text';
+  $conf['i18n_variables'][] = 'uc_minimum_subtotal_text';
+  $conf['i18n_variables'][] = 'uc_msg_continue_shopping';
+  $conf['i18n_variables'][] = 'uc_msg_order_existing_user';
+  $conf['i18n_variables'][] = 'uc_msg_order_logged_in';
+  $conf['i18n_variables'][] = 'uc_msg_order_new_user';
+  $conf['i18n_variables'][] = 'uc_msg_order_submit';
 }
 
 /**
@@ -328,43 +341,25 @@ function uc_cart_user($op, &$edit, &$user, $category = NULL) {
  * Implementation of hook_form_alter().
  */
 function uc_cart_form_alter(&$form, $form_state, $form_id) {
+  global $language;
+
   // Redirect shopper back to checkout page if they go to login from there.
   if ($form_id == 'user_login' || $form_id == 'user_edit' || $form_id == 'user_register') {
-    // Parse the existing #action url.
-    $p = parse_url($form['#action']);
-    $query = array();
-    if ($p['query']) {
-      parse_str($p['query'], $query);
-    }
-    if ($p['scheme']) {
-      // Path is an absolute URL.
-      $path = $p['scheme'] .'://'
-        . ($p['user'] ? $p['user'] . ($p['pass'] ? ':'. $p['pass'] : '') .'@' : '')
-        . ($p['host'] ? $p['host'] : '')
-        . ($p['path'] ? $p['path'] : '');
-    }
-    else {
-      // Path needs to be an internal path so we can pass it to url() later.
-      // Strip off the base path.
-      $path = substr($p['path'], drupal_strlen(base_path()));
-    }
 
     // Figure out the destination.
-    if ($_SESSION['checkout-redirect'] == TRUE) {
-      $query['destination'] = 'cart/checkout';
-    }
-    else {
+    if (empty($_SESSION['checkout-redirect'])) {
       // Compare the referer to checkout page URLs.
       if (uc_referer_check('cart/checkout') && uc_referer_uri() != '') {
-        $query['destination'] = 'cart/checkout';
+        $_SESSION['checkout-redirect'] = TRUE;
       }
       elseif (uc_referer_check(array('cart/checkout/review', 'cart/checkout/complete')) && uc_referer_uri() != '') {
-        $query['destination'] = 'user';
+        unset($_SESSION['checkout-redirect']);
       }
     }
 
-    // Build the new #action url.
-    $form['#action'] = url($path, array('query' => $query, 'fragment' => $p['fragment']));
+    if (!empty($_SESSION['checkout-redirect'])) {
+      $form['#redirect'] = 'cart/checkout';
+    }
   }
 
   if ($form_id == 'user_login' || $form_id == 'user_login_block') {
@@ -429,6 +424,11 @@ function uc_cart_block($op = 'list', $delta = 0, $edit = array()) {
         }
         else {
           $collapsible = FALSE;
+        }
+
+        // Hack in some CSS to hide the block if necessary. drupal_add_css() is in Drupal 7 for this...
+        if (variable_get('uc_cart_block_collapsed', TRUE)) {
+          drupal_set_html_head("<style type='text/css'>#cart-block-contents { display: none; }</style>");
         }
 
         // Build the cart image if enabled.
@@ -702,7 +702,7 @@ function theme_uc_cart_block_items($items) {
 
     $context = array(
       'revision' => 'themed',
-      'field' => 'price',
+      'type' => 'price',
     );
 
     // Loop through each item.
@@ -786,8 +786,8 @@ function uc_cart_uc_message() {
   $messages['review_instructions'] = t("Your order is almost complete. Please review the details below and click 'Submit order' if all the information is correct.  You may use the 'Back' button to make changes to your order if necessary.");
   $messages['completion_message'] = t('Your order is complete! Your order number is [order-id].');
   $messages['completion_logged_in'] = t('Thank you for shopping at [store-name]. While logged in, you may continue shopping or <a href="[order-url]">view your current order status</a> and order history.');
-  $messages['completion_existing_user'] = t("Thank you for shopping at [store-name]. Your current order has been attached to the account we found matching your e-mail address\n\n<a href=\"[site-url]/user\">Login</a> and view your current order status and order history. Remember to login when you make your next purchase for a faster checkout experience!");
-  $messages['completion_new_user'] = t("Thank you for shopping at [store-name]. A new account has been created for you here that you may use to view your current order status.\n\n<a href=\"[site-url]/user\">Login</a> to your new account using the following information:\n\n<strong>Username:</strong> !new_username\n<strong>Password:</strong> !new_password");
+  $messages['completion_existing_user'] = t("Thank you for shopping at [store-name]. Your current order has been attached to the account we found matching your e-mail address.\n\n<a href=\"!user_url\">Login</a> to view your current order status and order history. Remember to login when you make your next purchase for a faster checkout experience!", array('!user_url' => url('user')));
+  $messages['completion_new_user'] = t("Thank you for shopping at [store-name]. A new account has been created for you here that you may use to view your current order status.\n\n<a href=\"!user_url\">Login</a> to your new account using the following information:\n\n<strong>Username:</strong> !new_username\n<strong>Password:</strong> !new_password", array('!user_url' => url('user')));
   $messages['continue_shopping'] = t('<a href="[site-url]">Return to the front page.</a>');
 
   return $messages;
@@ -863,6 +863,7 @@ function uc_cart_checkout_pane() {
  */
 function uc_cart_user_login_form_submit($form, &$form_state) {
   global $user;
+  unset($_SESSION['checkout-redirect']);
   uc_cart_login_update($user->uid);
 }
 
@@ -891,8 +892,11 @@ function uc_cart_login_update($uid) {
 
     // Loop through what the items should be and re-add them to the cart.
     foreach ($items as $key => $item) {
-      uc_cart_add_item($item->nid, $item->qty, $item->data, $uid, FALSE, FALSE);
+      uc_cart_add_item($item->nid, $item->qty, $item->data, $uid, FALSE, FALSE, FALSE);
     }
+
+    // Rebuild the cart item cache.
+    uc_cart_get_contents($uid, 'rebuild');
   }
 }
 
@@ -1194,6 +1198,7 @@ function uc_cart_complete_sale($order, $login = FALSE) {
     // If it was found, update the order.
     if ($account = db_fetch_object($result)) {
       $order->uid = $account->uid;
+      $account = user_load($account->uid);
       db_query("UPDATE {uc_orders} SET uid = %d WHERE order_id = %d", $order->uid, $order->order_id);
       $message_type = 'existing_user';
     }
@@ -1246,9 +1251,11 @@ function uc_cart_complete_sale($order, $login = FALSE) {
   else {
     if ($order->uid == $user->uid) {
       $message_type = 'logged_in';
+      $account = clone $user;
     }
     else {
       $message_type = 'existing_user';
+      $account = user_load($order->uid);
     }
   }
 
@@ -1279,10 +1286,6 @@ function uc_cart_complete_sale($order, $login = FALSE) {
 
   // Clear our the session variables used to force the cart workflow.
   unset($_SESSION['cart_order'], $_SESSION['do_complete'], $_SESSION['new_user']);
-
-  if ($user->uid != 0) {
-    $account = clone $user;
-  }
 
   module_invoke_all('uc_checkout_complete', $order, $account);
   ca_pull_trigger('uc_checkout_complete', $order, $account);
@@ -1328,7 +1331,7 @@ function uc_cart_get_contents($cid = NULL, $action = NULL) {
   $cid = $cid ? $cid : uc_cart_get_id();
 
   if ($action == 'rebuild') {
-    $items = array();
+    unset($items[$cid]);
   }
 
   if (!isset($items[$cid])) {
@@ -1351,9 +1354,12 @@ function uc_cart_get_contents($cid = NULL, $action = NULL) {
       $item->model = $product->model;
 
       // Invoke hook_cart_item() with $op = 'load' in enabled modules.
-      foreach (module_implements('cart_item') as $module) {
+      foreach (module_list() as $module) {
         $func = $module .'_cart_item';
-        $func('load', $item);
+        if (function_exists($func)) {
+          // $item must be passed by reference.
+          $func('load', $item);
+        }
       }
 
       $items[$cid][] = $item;
@@ -1367,7 +1373,36 @@ function uc_cart_get_contents($cid = NULL, $action = NULL) {
 }
 
 /**
+ * Return the total number of items in the shopping cart.
+ *
+ * The total number of items in the cart isn't simply queried directly from the
+ * database, because when the shopping cart is loaded items may in fact be
+ * altered or removed. Hence we actually load the cart and tally up the total
+ * number of items from the fully loaded cart instead.
+ *
+ * @param $cid
+ *   The cart ID of the shopping cart whose items we're totalling; defaults to
+ *     the current user's cart.
+ * @return
+ *   An integer representing the total number of items in the cart.
+ */
+function uc_cart_get_total_qty($cid = NULL) {
+  if (empty($cid)) {
+    $cid = uc_cart_get_id();
+  }
+
+  $qty = 0;
+
+  foreach (uc_cart_get_contents($cid) as $item) {
+    $qty += $item->qty;
+  }
+
+  return $qty;
+}
+
+/**
  * Allow us to get one single line item in a cart
+ *
  * @param $cart_item_id
  *   cart_item_id to fetch
  * @return
@@ -1388,29 +1423,33 @@ function uc_cart_get_item($cart_item_id) {
   $item->model = $product->model;
 
   // Invoke hook_cart_item() with $op = 'load' in enabled modules.
-  foreach (module_implements('cart_item') as $module) {
+  foreach (module_list() as $module) {
     $func = $module .'_cart_item';
-    $func('load', $item);
+    if (function_exists($func)) {
+      // $item must be passed by reference.
+      $func('load', $item);
+    }
   }
+
   return $item;
 }
 
 /**
  * Update a cart item.
+ *
  * @param $item
- *   The loaded cart item
+ *   The loaded cart item.
  * @return unknown_type
  */
 function uc_cart_update_item($item) {
-  db_query('update {uc_cart_products}
-    set qty=%d, changed=UNIX_TIMESTAMP(), data="%s" WHERE cart_item_id=%d',
+  db_query("UPDATE {uc_cart_products} SET qty = %d, changed = UNIX_TIMESTAMP(), data = '%s' WHERE cart_item_id = %d",
     $item->qty, serialize($item->data), $item->cart_item_id);
 }
 
 /**
  * Add an item to a user's cart.
  */
-function uc_cart_add_item($nid, $qty = 1, $data = NULL, $cid = NULL, $msg = TRUE, $check_redirect = TRUE) {
+function uc_cart_add_item($nid, $qty = 1, $data = NULL, $cid = NULL, $msg = TRUE, $check_redirect = TRUE, $rebuild = TRUE) {
   if (isset($_SESSION['cart_order'])) {
     unset($_SESSION['cart_order']);
   }
@@ -1469,7 +1508,7 @@ function uc_cart_add_item($nid, $qty = 1, $data = NULL, $cid = NULL, $msg = TRUE
   if (is_null($item) || $item === FALSE) {
     db_query("INSERT INTO {uc_cart_products} (cart_id, nid, qty, changed, data) VALUES ('%s', %d, %d, %d, '%s')", $cid, $node->nid, $qty, time(), serialize($data));
     if ($msg) {
-        drupal_set_message(t('<strong>@product-title</strong> added to <a href="!url">your shopping cart</a>.', array('@product-title' => $node->title, '!url' => url('cart'))));
+      drupal_set_message(t('<strong>@product-title</strong> added to <a href="!url">your shopping cart</a>.', array('@product-title' => $node->title, '!url' => url('cart'))));
     }
   }
   else {
@@ -1479,6 +1518,11 @@ function uc_cart_add_item($nid, $qty = 1, $data = NULL, $cid = NULL, $msg = TRUE
     }
     $qty += $item->qty;
     module_invoke($data['module'], 'update_cart_item', $node->nid, $data, min($qty, 999999), $cid);
+  }
+
+  // If specified, rebuild the cached cart items array.
+  if ($rebuild) {
+    uc_cart_get_contents($cid, 'rebuild');
   }
 
   if ($check_redirect) {
@@ -1510,9 +1554,12 @@ function uc_cart_remove_item($nid, $cid = NULL, $data = array()) {
   // Invoke hook_cart_item() with $op = 'remove' in enabled modules.
   $result = db_query("SELECT c.*, n.title, n.vid FROM {node} n INNER JOIN {uc_cart_products} c ON n.nid = c.nid WHERE c.cart_id = '%s' AND c.nid = %d", $cart_id, $nid);
   if ($item = db_fetch_object($result)) {
-    foreach (module_implements('cart_item') as $module) {
+    foreach (module_list() as $module) {
       $func = $module .'_cart_item';
-      $func('remove', $item);
+      if (function_exists($func)) {
+        // $item must be passed by reference.
+        $func('remove', $item);
+      }
     }
   }
 
@@ -1532,6 +1579,9 @@ function uc_cart_update_item_object($cart) {
         module_invoke($item['module'], 'update_cart_item', $item['nid'], unserialize($item['data']), $item['qty']);
       }
     }
+
+    // Rebuild the cached cart items.
+    uc_cart_get_contents(NULL, 'rebuild');
   }
 }
 
@@ -1624,8 +1674,20 @@ function uc_cart_product_is_shippable($product) {
     return FALSE;
   }
 
+  $result = array();
+
   // See if any other modules have a say in the matter...
-  $result = module_invoke_all('cart_item', 'can_ship', $product);
+  foreach (module_list() as $module) {
+    $func = $module .'_cart_item';
+    if (function_exists($func)) {
+      // $product must be passed by reference.
+      $return = $func('can_ship', $product);
+
+      if (!is_null($return)) {
+        $result[] = $return;
+      }
+    }
+  }
 
   // Return TRUE by default.
   if (empty($result) || in_array(TRUE, $result)) {
@@ -1654,4 +1716,3 @@ function uc_cart_filter_checkout_panes($panes, $remove = NULL) {
 
   return $panes;
 }
-

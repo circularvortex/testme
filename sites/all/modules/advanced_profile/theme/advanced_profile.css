@@ -1,0 +1,18 @@
+/* $Id*/
+
+/**
+ * @file
+ * Contains styling for the user page when overridden by APK.
+*/
+
+/*** FRIEND'S GALLERY  ******************************************************/
+.view-apk-ur-friends-gallery .picture {
+  clear: none;
+  float: none;
+  padding-left: 0;
+}
+
+.view-apk-ur-friends-gallery .picture img {
+  width: 85px;
+  height: 85px;
+}
