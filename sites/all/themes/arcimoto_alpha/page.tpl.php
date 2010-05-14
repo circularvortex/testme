@@ -114,11 +114,6 @@ document.writeln('<scr' + 'ipt language="JavaScript" src="'+tl_loc0+'" type="tex
       
       <div id="content_body">
         <?php print $content ?>
-		<?php if ($node->comment && $node->comment_count) : ?>
-		    <div>
-				<h2>Comments on this post:</h2>
-			</div>
-		<?php endif; ?>
       </div>
       
 	  
