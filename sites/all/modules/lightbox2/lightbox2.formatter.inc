@@ -1,5 +1,5 @@
 <?php
-// $Id: lightbox2.formatter.inc,v 1.1.2.16 2009/01/05 13:30:18 snpower Exp $
+// $Id: lightbox2.formatter.inc,v 1.1.2.21 2010/03/07 18:23:15 snpower Exp $
 
 /**
  * @file
@@ -95,7 +95,7 @@ function lightbox2_imagefield_image_imagecache($field_name, $item, $formatter, $
   else {
     $rules = _imagecache_get_presets();
   }
-  if ($view_preset == 'original' || in_array($view_preset, (array) $rules)) {
+  if ($view_preset == 'link' || $view_preset == 'original' || in_array($view_preset, (array) $rules)) {
     $rel = 'lightbox';
     if (strpos($formatter, '__lightshow2__') !== FALSE) {
       $rel = 'lightshow';
@@ -183,8 +183,8 @@ function theme_imagefield_image_imagecache_lightbox2($view_preset, $field_name, 
       $node_links[] = l($node_link_text, 'node/'. $item['nid'], array('attributes' => $attributes));
     }
     $download_link_text = check_plain(variable_get('lightbox2_download_link_text', 'Download Original'));
-    if (!empty($download_link_text) && user_access('download original image') && user_access('view imagefield uploads')) {
-      $node_links[] = l($download_link_text, $item['filepath'], array('attributes' => array('target' => '_blank', 'id' => 'download_link_text')));
+    if (!empty($download_link_text) && user_access('download original image')) {
+      $node_links[] = l($download_link_text, file_create_url($item['filepath']), array('attributes' => array('target' => '_blank', 'id' => 'download_link_text')));
     }
   }
 
@@ -215,6 +215,9 @@ function theme_imagefield_image_imagecache_lightbox2($view_preset, $field_name, 
   elseif ($imagefield_grouping == 3 && !empty($item['nid'])) {
     $full_rel = $rel .'['. $field_name .'_'. $item['nid'] .']['. $caption .']';
   }
+  elseif ($imagefield_grouping == 4 ) {
+    $full_rel = $rel .'[allnodes]['. $caption .']';
+  }
   elseif (isset($args['rel_grouping'])) {
     $full_rel = $rel .'['. $args['rel_grouping'] .']['. $caption .']';
   }
@@ -229,6 +232,10 @@ function theme_imagefield_image_imagecache_lightbox2($view_preset, $field_name, 
   $attributes = array();
   if ($view_preset == 'original') {
     $image = theme('lightbox2_image', $item['filepath'], $image_tag_alt, $image_tag_title, $attributes);
+  }
+  elseif ($view_preset == 'link') {
+    // Not actually an image, just a text link.
+    $image = variable_get('lightbox2_view_image_text', 'View image');
   }
   else {
     $image = theme('imagecache', $view_preset, $item['filepath'], $image_tag_alt, $image_tag_title, $attributes);
@@ -294,6 +301,9 @@ function theme_lightbox2_file_formatter_lightbox2_iframe($file, $field, $file_fo
     $file_data = unserialize($file->data);
   }
   $description = $file_data['description'];
+  if (empty($description)) {
+    $description = $file->filename;
+  }
   $attributes = array();
   $attributes['id'] = 'node_link_text';
   $target = variable_get('lightbox2_node_link_target', FALSE);

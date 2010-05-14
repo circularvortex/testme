@@ -1,5 +1,5 @@
 <?php
-// $Id: lightbox2.admin.inc,v 1.1.2.24 2009/01/07 17:46:47 snpower Exp $
+// $Id: lightbox2.admin.inc,v 1.1.2.29 2010/03/07 18:23:15 snpower Exp $
 
 /**
  * @file
@@ -98,7 +98,7 @@ function lightbox2_general_settings_form() {
   $form['layout_fieldset']['lightbox2_download_link_text'] = array(
     '#type' => 'textfield',
     '#title' => t('Text for image original link'),
-    '#description' => t('This is the text that will appear as the link to the original file underneath the image in the lightbox.  Leave this blank for the link not to appear.'),
+    '#description' => t('This is the text that will appear as the link to the original file underneath the image in the lightbox.  Leave this blank for the link not to appear.  It will only appear for images uploaded via the "image" or "imagefield" modules.  Users will need the "download original image" permission, but also the "view original images" permission if using the "image" module.'),
     '#default_value' => variable_get('lightbox2_download_link_text', 'Download Original'),
   );
 
@@ -252,6 +252,7 @@ function lightbox2_general_settings_form() {
       1 => t('Group by field name'),
       2 => t('Group by node id'),
       3 => t('Group by field name and node id'),
+      4 => t('Group all nodes and fields'),
     );
 
     // Add checkbox for emfield emimage grouping.
@@ -280,6 +281,13 @@ function lightbox2_general_settings_form() {
         '#description' => t('By default, the caption for imagefields is the image title text configured.  If no title is configured, then the alt text will be used.  This option allows you to override that and always display the node title as the image caption.'),
         '#default_value' => variable_get('lightbox2_imagefield_use_node_title', FALSE),
       );
+      $form['cck_options']['lightbox2_view_image_text'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Text to view image'),
+        '#description' => t('This is the text that can appear when linking to the image using CCK imagefields.'),
+        '#default_value' => variable_get('lightbox2_view_image_text', 'View image'),
+      );
+
     }
   }
 
@@ -770,7 +778,7 @@ function lightbox2_auto_image_handling_settings_form() {
     $sizes = _image_get_sizes();
     foreach ($sizes as $size_key => $size) {
       if ($size_key == 'original' or $size_key == '_original')  {
-        $size_key = '';
+        $size_key = 'original';
       }
       $size_options[$size_key] = $size['label'];
     }
@@ -778,7 +786,7 @@ function lightbox2_auto_image_handling_settings_form() {
       '#type' => 'select',
       '#title' => t('Lightbox image display size'),
       '#options' => $size_options,
-      '#default_value' => variable_get('lightbox2_display_image_size', ''),
+      '#default_value' => variable_get('lightbox2_display_image_size', 'original'),
       '#description' => t('Select which image size will be loaded in the lightbox.  This only applies to images uploaded with the Image module.'),
     );
 

@@ -1,5 +1,5 @@
 <?php
-// $Id: lightbox2.install,v 1.1.4.4.2.44 2009/01/05 03:19:51 snpower Exp $
+// $Id: lightbox2.install,v 1.1.4.4.2.46 2010/02/22 17:34:52 snpower Exp $
 
 /**
  * @file
@@ -41,6 +41,7 @@ function lightbox2_uninstall() {
   variable_del('lightbox2_disable_these_urls');
   variable_del('lightbox2_imagefield_group_node_id');
   variable_del('lightbox2_imagefield_use_node_title');
+  variable_del('lightbox2_view_image_text');
   variable_del('lightbox2_image_ncck_group_node_id');
   // Advanced settings.
   variable_del('lightbox2_js_location');
@@ -168,3 +169,10 @@ function lightbox2_update_3() {
   return array();
 }
 
+function lightbox2_update_6001() {
+  $size = variable_get('lightbox2_display_image_size', 'original');
+  if ($size == '') {
+    variable_set('lightbox2_display_image_size', 'original');
+  }
+  return array();
+}
