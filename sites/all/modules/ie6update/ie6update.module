@@ -1,5 +1,5 @@
 <?php
-// $Id: ie6update.module,v 1.1.2.1 2009/07/29 18:17:27 jrglasgow Exp $
+// $Id: ie6update.module,v 1.1.2.1.2.4 2010/04/28 20:28:14 jrglasgow Exp $
 
 /**
  * @file
@@ -42,24 +42,25 @@ function ie6update_admin_settings() {
   );
   return system_settings_form($form);
 }
+
 /**
- * Add the script to the scripts variable before the page is built
+ * Implementation of hook_footer().
  */
-function ie6update_preprocess_page(&$vars, $hook) {
+function ie6update_footer($main = 0) {
+  global $base_url, $base_path;
   $message = variable_get('ie6update_update_bar_message', 'Internet Explorer is missing updates required to view this site. Click here to update... ');
   $url = variable_get('ie6update_destination_url', 'http://www.microsoft.com/windows/internet-explorer/default.aspx');
-  
-  $vars['scripts'] .= '
+  $icon_path = $base_url . '/' . drupal_get_path('module', 'ie6update') .'/images/';
+  return '
     <!--[if IE 6]>
-      <script type="text/javascript"> 
+      <script type="text/javascript">
         var IE6UPDATE_OPTIONS = {
-          icons_path: "'. url(drupal_get_path('module', 'ie6update'), array('absolute' => TRUE)) .'/images/",
-          message: "'. $message .'",
+          icons_path: "'. $icon_path .'",
+          message: "'. t(filter_xss_admin($message)) .'",
           url: "'. $url .'"
         }
       </script>
       <script type="text/javascript" src="'. url(drupal_get_path('module', 'ie6update') .'/ie6update.js', array('absolute' => TRUE)) .'"></script>
     <![endif]-->
   ';
-  /**/
 }

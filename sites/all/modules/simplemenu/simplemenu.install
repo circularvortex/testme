@@ -1,5 +1,12 @@
 <?php
-// $Id: simplemenu.install,v 1.1.2.1 2008/10/12 23:35:48 rz Exp $
+// $Id: simplemenu.install,v 1.1.2.2 2010/04/13 01:19:04 alexiswilke Exp $
+
+/**
+ * Get rid of the variables used by simple menu.
+ */
+function simplemenu_uninstall() {
+  db_query("DELETE FROM {variable} WHERE name LIKE 'simplemenu_%'");
+}
 
 /**
  * Implementation of hook_update_N().
@@ -7,8 +14,10 @@
 function simplemenu_update_6001() {
   // if navigation menu was used in Drupal 5 use the same in Drupal 6.
   // otherwise, we can't do anything.
-  if(variable_get('simplemenu_menu', 1) == 1) {
+  if (variable_get('simplemenu_menu', 1) == 1) {
     variable_set('simplemenu_menu', 'navigation:0');
   }
   return array();
 }
+
+// vim: ts=2 sw=2 et syntax=php

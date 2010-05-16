@@ -1,11 +1,15 @@
-// $Id: simplemenu.js,v 1.9.2.12.2.3 2008/12/06 18:04:45 rz Exp $
+// $Id: simplemenu.js,v 1.9.2.12.2.6 2010/04/13 01:19:04 alexiswilke Exp $
 
-$(document).ready(function() {
+Drupal.behaviors.simplemenuAttach = function(context) {
   // If detect pop-ups setting is enabled and we are in a pop-up window
   if (Drupal.settings.simplemenu.detectPopup && window.opener) {
-  	return;
- 	}
- 	
+    return;
+  }
+
+  if ($('body').hasClass('simplemenu-enabled')) {
+    return;
+  }
+
   // get the element to add the menu to
   var element = Drupal.settings.simplemenu.element;
   var menu = $(simplemenu).attr("id", "simplemenu").addClass('clear-block');
@@ -29,26 +33,27 @@ $(document).ready(function() {
   
   // Build menu
   $(menu)
-    .superfish( { 
+    .superfish({
+      pathClass: 'current',
       animation: animation,
       delay: Drupal.settings.simplemenu.hideDelay,
       speed: Drupal.settings.simplemenu.effectSpeed
-    } )
-  	.find(">li:has(ul)")
-  		.mouseover(function(){
-  			$("ul", this).bgIframe({opacity:false});
-  		})
-  		.find("a")
-  			.focus(function(){
-  				$("ul", $(".nav>li:has(ul)")).bgIframe({opacity:false});
-  			})
-  	  .end()
-  	.end()
-  	.find("a")
-  	  .removeAttr('title');
+    })
+    .find(">li:has(ul)")
+      .mouseover(function(){
+        $("ul", this).bgIframe();
+      })
+      .find("a")
+        .focus(function(){
+          $("ul", $(".nav>li:has(ul)")).bgIframe();
+        })
+      .end()
+    .end()
+    .find("a")
+      .removeAttr('title');
 
-	 $('#simplemenu').children('li.expanded').addClass('root');
-});
+   $('#simplemenu').children('li.expanded').addClass('root');
+};
 
 
 /* Copyright (c) 2006 Brandon Aaron (http://brandonaaron.net)
