@@ -4,6 +4,7 @@
 	http://dev.arcimoto.com/sites/all/themes/arcimoto_alpha/style.css?j
 	http://dev.arcimoto.com/sites/all/themes/arcimoto_alpha/style.css?E
 	http://www.arcimoto.com/sites/all/themes/arcimoto_alpha/style.css?E
+	http://dev.arcimoto.com/sites/all/themes/arcimoto_alpha/style.css?K
 */
 
 /*
@@ -2490,6 +2491,28 @@ padding-left: 0;
 }
 
 /* @end */
+
+
+/* @end */
+
+/* @group sections */
+
+/* @group company */
+
+.team-description {
+	
+}
+
+.team-description h3 {
+	margin-top: 15px;
+}
+.team-photo {
+	display: block;
+	float: left;
+	margin: 0 20px 20px 0;
+}
+/* @end */
+
 
 
 /* @end */
