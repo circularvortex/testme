@@ -13,7 +13,7 @@ document.writeln('<scr' + 'ipt language="JavaScript" src="'+tl_loc0+'" type="tex
 //]]>
 </script>
 </head>
-<body class="<?php print $body_classes; ?> standard_page">
+<body class="<?php print $body_classes; ?><?php if ($section_title) print " sectiontitle-" . $section_title; ?> standard_page">
 <!-- Begin the Container -->
 <div class="container_16" id="header">
 	
@@ -79,12 +79,18 @@ document.writeln('<scr' + 'ipt language="JavaScript" src="'+tl_loc0+'" type="tex
 <div class="container_16 content_border" id="main_container">
 
   
-  <?php if($messages) : ?>
-    <div id="console" class="grid_16">
-      <?php print $messages ?>
-    </div>
-  <?php endif; ?>
-  
+	<?php if ($messages or $breadcrumb or $help): ?>
+	  <div id="content-header" class="grid_16">
+		<?php if ($section_title = 'admin') print $breadcrumb; // This is inelegant, uses context title, FIXME ?>
+		<?php if($messages) : ?>
+		    <div id="console" class="grid_16">
+		      <?php print $messages ?>
+		    </div>
+		  <?php endif; ?>
+		<?php print $help; ?>
+	  </div><!-- /#content-header -->
+	<?php endif; ?>
+
 
   <div id="body">
     

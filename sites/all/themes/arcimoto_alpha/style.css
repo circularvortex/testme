@@ -4,6 +4,7 @@
 	http://dev.arcimoto.com/sites/all/themes/arcimoto_alpha/style.css?j
 	http://dev.arcimoto.com/sites/all/themes/arcimoto_alpha/style.css?E
 	http://www.arcimoto.com/sites/all/themes/arcimoto_alpha/style.css?E
+	http://www.arcimoto.com/sites/all/themes/arcimoto_alpha/style.css?t
 	http://dev.arcimoto.com/sites/all/themes/arcimoto_alpha/style.css?K
 */
 
@@ -457,6 +458,16 @@ div.node-form div.main { padding-right:20px; }
 }
 
 /* ---- End Logo ---- */
+
+
+.breadcrumb {
+	display: normal;
+}
+
+body.node-type-blog .breadcrumb,
+.page-community .breadcrumb {
+	display: none;
+}
 
 /* @end */
 
@@ -1278,9 +1289,13 @@ div.secondary_box img {
 #body h1.title {
 	display: none;
 	text-align: left;
-	font-size: 1.6em;
+	font-size: 1.3em;
 	font-family: inherit;
 	font-weight: bold;
+}
+
+body.node-type-blog #body h1.title {
+	display: block;
 }
 
  #content_body {
@@ -1492,10 +1507,6 @@ ul.gallery li img{
 }
 
 /* savings */
-#calculator_box {
-  border: 1px solid #999;
-  padding: 0 20px 20px 20px;
-}
 
 #jtv_flash {
   margin: 0 8em;
@@ -1648,6 +1659,11 @@ ul.gallery li img{
 
 /* @group Calculator */
 
+#calculator_box {
+  border: 1px solid #999;
+  padding: 0 20px 20px 20px;
+}
+
 form#arcimoto-calculator-form div.form-item {
   display: inline;
   padding: 0;
@@ -1676,6 +1692,92 @@ form#arcimoto-calculator-form input#edit-submit {
 	width: auto;
 }
 /* @end */
+
+/* @group Calculator V2 */
+
+.page-vehicle .pane-block-4 {
+	border: 1px solid #999;
+	padding: 0 20px 20px 20px;
+}
+
+
+#calculator_box {
+  border: 1px solid #999;
+  padding: 0 20px 20px 20px;
+}
+
+form#arcimoto-calculator-form div.form-item {
+  display: inline;
+  padding: 0;
+}
+
+#savings-calculator,
+#savings-total {
+	font-size: 1.3em;
+}
+
+#savings-calculator input {
+	font-size: 1.2em;
+	font-weight: bold;
+	width: 2.5em;
+	background: #f8f8f8;
+	border: 1px solid #fff;
+	border-bottom: 1px solid #aaa;
+	font-family: "Helvetica Neue", Helvetica, Arial, Verdana, sans-serif;
+	text-align: center;
+}
+#savings-calculator input:hover {
+	background: #f8f8f8;
+
+}
+#savings-calculator input:focus {
+	background: #eee;
+	border: 1px solid #888;
+}
+
+#savings-calculator input#price-gal {
+	width: 2.5em;
+}
+#savings-calculator input#miles-period {
+	width: 1.5em;
+}
+#savings-calculator input#mpg {
+	width: 2.5em;
+}
+#savings-calculator input#price-kwh {
+	width: 2.5em;
+}
+#savings-calculator input#savings-calc {
+	width: auto;
+	margin: 14px 0 0 0;
+}
+
+#savings-total {
+	margin: 16px 0 0 0;
+	border: 1px solid #BE7;
+	text-align: center;
+	padding: 16px;
+	font-family: "Helvetica Neue", Helvetica, Arial, Verdana, sans-serif;
+	font-size: 25px;
+	background-color: #cf8;
+	opacity: 0;
+}
+
+#savings-total strong {
+	font-size: 27px;
+	font-weight: bold;
+}
+
+#savings-total sup {
+	vertical-align: baseline;
+	font-size: 17px;
+	position: relative;
+	top: -0.5em;
+	letter-spacing: -0.1em;
+}
+
+/* @end */
+
 
 /* @group Community */
 
@@ -2491,28 +2593,6 @@ padding-left: 0;
 }
 
 /* @end */
-
-
-/* @end */
-
-/* @group sections */
-
-/* @group company */
-
-.team-description {
-	
-}
-
-.team-description h3 {
-	margin-top: 15px;
-}
-.team-photo {
-	display: block;
-	float: left;
-	margin: 0 20px 20px 0;
-}
-/* @end */
-
 
 
 /* @end */
