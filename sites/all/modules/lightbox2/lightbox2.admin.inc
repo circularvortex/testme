@@ -1,5 +1,5 @@
 <?php
-// $Id: lightbox2.admin.inc,v 1.1.2.29 2010/03/07 18:23:15 snpower Exp $
+// $Id: lightbox2.admin.inc,v 1.1.2.32 2010/06/07 18:20:31 snpower Exp $
 
 /**
  * @file
@@ -84,6 +84,14 @@ function lightbox2_general_settings_form() {
     '#description' => t('This controls whether the link to the image page underneath the image is opened in a new window or the current window.'),
     '#default_value' => variable_get('lightbox2_node_link_target', FALSE),
     '#return_value' => '_blank',
+  );
+
+  // Show caption
+  $form['layout_fieldset']['lightbox2_show_caption'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Show image caption'),
+    '#description' => t('Unset this to always hide the image caption (usually the title).'),
+    '#default_value' => variable_get('lightbox2_show_caption', TRUE),
   );
 
   // Add text box for link text to node.
@@ -509,7 +517,7 @@ function lightbox2_general_settings_form() {
  * numeric.
  */
 function lightbox2_general_settings_form_validate($form, &$form_state) {
-  if ($form_state['values']['op'] == 'Save configuration') {
+  if ($form_state['values']['op'] == t('Save configuration')) {
     $border_size = $form_state['values']['lightbox2_border_size'];
     $box_hex_colour = $form_state['values']['lightbox2_box_color'];
     $font_hex_colour = $form_state['values']['lightbox2_font_color'];
@@ -529,7 +537,6 @@ function lightbox2_general_settings_form_validate($form, &$form_state) {
       }
     }
 
-
     if (!_lightbox2_validate_hex_color($overlay_hex_colour)) {
       form_set_error('lightbox2_overlay_color', t('You must enter a properly formed hex value.'));
     }
@@ -540,7 +547,7 @@ function lightbox2_general_settings_form_validate($form, &$form_state) {
       }
 
       if (!_lightbox2_validate_hex_color($box_hex_colour)) {
-        form_set_error('lightbox2_border_color', t('You must enter a properly formed hex value.'));
+        form_set_error('lightbox2_box_color', t('You must enter a properly formed hex value.'));
       }
 
       if (!_lightbox2_validate_hex_color($font_hex_colour)) {
@@ -630,7 +637,7 @@ function lightbox2_slideshow_settings_form() {
   );
 
   // Add checkbox for "pausing on prev click".
-  $form['lightbox2_slideshow_pause_on_prev_click'] = array(
+  $form['lightbox2_slideshow_pause_on_previous_click'] = array(
     '#type' => 'checkbox',
     '#title' => t('Pause slideshow on "Previous Image" click'),
     '#description' => t('When enabled the slideshow is automatically paused, and the previous image shown, when the "Previous" button is clicked.'),

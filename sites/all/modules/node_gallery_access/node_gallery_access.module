@@ -1,0 +1,516 @@
+<?php
+// $Id: node_gallery_access.module,v 1.2 2010/01/12 22:26:13 justintime Exp $
+
+/**
+ * @file node_gallery_access.module
+ *
+ * Node gallery access module file
+ * 
+ * Private galleries are fairly straightforward, and use Drupal's Node Access Rights API.
+ * Password galleries are trickier, because we have to allow access to the protected image, the description, etc.
+ * 
+ */
+
+define("NODE_GALLERY_ACCESS_PERM_ACCESS_PRIVATE_CONTENTS", 'access private galleries');
+define("NODE_GALLERY_ACCESS_PERM_EDIT_PRIVATE_CONTENTS", 'edit private galleries');
+define("NODE_GALLERY_ACCESS_PERM_ACCESS_PASSWORD_CONTENTS", 'access password protected galleries without a password');
+define("NODE_GALLERY_ACCESS_PERM_EDIT_PASSWORD_CONTENTS", 'edit password protected galleries without a password');
+
+define("NODE_GALLERY_ACCESS_TYPE_PUBLIC", 0);
+define("NODE_GALLERY_ACCESS_TYPE_PRIVATE", 1);
+define("NODE_GALLERY_ACCESS_TYPE_PASSWORD", 2);
+
+define("NODE_GALLERY_ACCESS_ENTER_PASSWORD_PATH", 'node_gallery/enterpassword');
+
+module_load_include('inc', 'node_gallery_access', 'node_gallery_access');
+
+/**
+ * Implementation of hook_perm()
+ */
+function node_gallery_access_perm() {
+  return array('access private galleries', 'edit private galleries', 'access password protected galleries without a password', 'edit password protected galleries without a password');
+}
+
+/**
+ * Implementation of hook_enable()
+ */
+function node_gallery_access_enable() {
+  $weight = db_query("SELECT weight FROM {system} WHERE name = 'node_gallery' AND type = 'module'");
+  db_query("UPDATE {system} SET weight = %d WHERE name = 'node_gallery_lightbox2' AND type = 'module'", $weight + 10);
+  //Bug in core: see http://drupal.org/node/200931
+  drupal_get_schema(NULL, TRUE);
+  node_gallery_access_initialize_table();
+	node_access_needs_rebuild(TRUE);
+}
+
+function node_gallery_access_initialize_table() {
+  $galleries = array();
+  
+  $gallery_types = node_gallery_get_types();
+  $sql = "SELECT n.nid, n.uid FROM {node} n  WHERE n.type IN (". 
+    db_placeholders($gallery_types, 'varchar') .") AND n.status = 1";
+  $result = db_query($sql,$gallery_types);
+  while ($object = db_fetch_object($result)) {
+    //we only need to create rows in node_gallery_access if they're not there already
+    if (!node_gallery_access_exists($object->nid)) {
+	    $record = new stdClass();
+	    $record->nid = $object->nid;
+	    $record->uid = $object->uid;
+      $return = drupal_write_record('node_gallery_access',$record);
+    }
+  }
+}
+
+/**
+ * Implementation of hook_disable()
+ */
+function node_gallery_access_disable() {
+	node_access_needs_rebuild(TRUE);
+}
+
+function node_gallery_access_perms_allow_access($access_type = NODE_GALLERY_ACCESS_TYPE_PUBLIC, $op = 'view', $account = NULL) {
+  global $user;
+  if (!isset($account)) {
+    $account = $user;
+  }
+  
+  //IF they have admin rights, we short circuit, giving access
+  if ($account->uid == 1 || user_access('administer nodes', $account)) {
+    return TRUE;
+  }
+  
+  switch ($access_type) {
+    // Anyone can access public galleries
+    case NODE_GALLERY_ACCESS_TYPE_PUBLIC:
+      return TRUE;
+      break;
+    case NODE_GALLERY_ACCESS_TYPE_PRIVATE:
+      if (user_access(NODE_GALLERY_ACCESS_PERM_EDIT_PRIVATE_CONTENTS, $account) || ($op == 'view' && user_access(NODE_GALLERY_ACCESS_PERM_ACCESS_PRIVATE_CONTENTS, $account))) {
+        return TRUE;
+      }
+      break;
+    case NODE_GALLERY_ACCESS_TYPE_PASSWORD:
+      if (user_access(NODE_GALLERY_ACCESS_PERM_EDIT_PASSWORD_CONTENTS, $account) || ($op == 'view' && user_access(NODE_GALLERY_ACCESS_PERM_ACCESS_PASSWORD_CONTENTS, $account))) {
+        return TRUE;
+      }
+      break;
+  }
+  return FALSE;
+}
+
+/**
+ * Implementation of hook_menu()
+ */
+function node_gallery_access_menu() {
+  $items['node_gallery_access/passwd/js'] = array(
+    'title' => 'Setting Password',
+    'page callback' => 'node_gallery_access_setting_form_js',
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+    'file' => 'node_gallery_access.pages.inc',
+  );
+  
+  $items[NODE_GALLERY_ACCESS_ENTER_PASSWORD_PATH] = array(      
+    'title' => 'Protected Gallery - Enter Password',      
+    'description' => 'Here you can enter the password for the gallery.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('node_gallery_access_enterpassword'),      
+    'access callback' => TRUE,
+    'file' => 'node_gallery_access.pages.inc',
+    'type' => MENU_CALLBACK
+  );
+  $items['node_gallery/private_content'] = array(
+    'title' => 'Private Gallery',      
+    'description' => 'This is a private gallery.',
+    'page callback' => 'node_gallery_access_private',   
+    'access callback' => TRUE,
+    'file' => 'node_gallery_access.pages.inc',
+    'type' => MENU_CALLBACK
+  );
+  
+  $items['admin/settings/node_gallery/access'] = array(
+    'title' => 'Access Settings',      
+    'page callback' => 'drupal_get_form',  
+    'page arguments' => array('node_gallery_access_settings'), 
+    'access arguments' => array('access administration pages'),
+    'file' => 'node_gallery_access.admin.inc',
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 12,
+  );
+  
+  return $items;
+}
+
+/**
+ * Implementation of hook_init()
+ */
+function node_gallery_access_init() {
+  global $user;
+  
+  $accesses = module_invoke_all('node_gallery_access');
+  if (!empty($accesses)) {
+    $access = $accesses[0];
+    if ($access->access_type == NODE_GALLERY_ACCESS_TYPE_PRIVATE) {
+      if ($user->uid != $access->uid && !node_gallery_access_perms_allow_access($access->access_type)) {
+        drupal_goto('node_gallery/private_content');
+      }
+    }
+    elseif ($access->access_type == NODE_GALLERY_ACCESS_TYPE_PASSWORD) {
+      if ($user->uid == $access->uid || node_gallery_access_perms_allow_access($access->access_type)) {
+        return;
+      }
+      elseif (!isset($_SESSION['_node_gallery']['passwords'][$access->nid]) 
+       || ($_SESSION['_node_gallery']['passwords'][$access->nid] != $access->password)) {
+        $_SESSION['_node_gallery'] = array('current' => $access->nid);
+        drupal_goto('node_gallery/enterpassword', 'destination='. $_GET['q']);
+      }
+    }
+  }
+}
+
+function node_gallery_access_node_gallery_access() {
+  $args = arg();
+  if (count($args) == 2 && $args[0] == 'node' && is_numeric($args[1])) {
+    $access = db_fetch_object(db_query('SELECT ng.*, n.type FROM {node} n INNER JOIN {node_gallery_access} ng ON n.nid = ng.nid WHERE
+     ng.nid = %d', $args[1]));
+    //check gallery access;
+    if (in_array($access->type, variable_get('node_gallery_access_types', array()))) {
+      return $access;
+    }
+    //check image access;
+    return db_fetch_object(db_query('SELECT ng.* FROM {node_gallery_access} ng INNER JOIN {node_galleries} g
+     ON ng.nid = g.gid WHERE g.nid = %d', $args[1]));
+  }
+}
+
+function node_gallery_access_check_access($node, $type = NULL) {
+  global $user;
+  
+  if ($type == NULL) {
+	  if (in_array($node->type, (array)node_gallery_get_types('gallery'))) {
+	    $type = 'gallery';
+	  }
+	  else {
+	    $type = 'image';
+	  }
+  }
+  if ($type == 'image') {
+    $gallery_node = node_load($node->gid);
+  }
+  else {
+    $gallery_node = $node;
+  }
+  
+  $access_type = node_gallery_access_get_node_access($gallery_node->nid);
+  if ($user->uid == $gallery_node->uid || node_gallery_access_perms_allow_access($access_type)
+    || (isset($_SESSION['_node_gallery']['passwords'][$gallery_node->nid]) && $_SESSION['_node_gallery']['passwords'][$gallery_node->nid] == $gallery_node->password)) {
+     return TRUE;
+  }
+  return FALSE;
+}
+
+/**
+ * Implementation of hook_form_alter()
+ */
+function node_gallery_access_form_alter(&$form, $form_state, $form_id) {
+  if ($form_id == $form['type']['#value'] .'_node_form') {
+    if (in_array($form['#node']->type, (array)node_gallery_access_get_types())) {
+      $defaults = $form['#node'];
+      $defaults = array_merge((array)$defaults, (array)$form_state['values']);
+      $form['ng_access'] = array(
+        '#type' => 'fieldset',
+        '#title' => t('Node Gallery Access Setting'),
+        '#collapsible' => FALSE,
+      );
+      $form['ng_access']['access_type'] = array(
+        '#type' => 'radios',
+        '#title' => t('Access Type'),
+        '#options' => array(t('Public'), t('Private'), t('Password')),
+        '#default_value' => empty($defaults['access_type']) ? 0 : $defaults['access_type'],
+        '#ahah' => array(
+          'path' => 'node_gallery_access/passwd/js',
+          'wrapper' => 'ng-access-wrapper',
+        ),
+      );
+      $form['ng_access']['wrapper'] = array(
+        '#prefix' => '<div id="ng-access-wrapper">',
+        '#suffix' => '</div>',
+        '#value' => ' ',
+      );
+      if ($defaults['access_type'] == NODE_GALLERY_ACCESS_TYPE_PASSWORD) {
+        $form['ng_access']['wrapper']['chgpwd'] = array(
+          '#type' => 'submit',
+          '#value' => t('Change Password'),
+          '#description' => t('Click here to change password.'),
+          '#ahah' => array(
+            'path' => 'node_gallery_access/passwd/js',
+            'wrapper' => 'ng-access-wrapper',
+          ),
+        );
+        $form['ng_access']['old_password'] = array(
+          '#type' => 'hidden',
+          '#value' => $defaults['password'],
+        );
+      }
+    }
+  }
+}
+
+/**
+ * Implementation of hook_nodeapi()
+ */
+function node_gallery_access_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
+  global $user;
+  
+  if (in_array($node->type, (array)node_gallery_get_types('gallery'))) {
+    switch ($op) {
+      case 'load':
+        $access = node_gallery_access_get_node_access($node->nid);
+        foreach ((array)$access as $k => $v) {
+          $node->{$k} = $v;
+        }
+        break;
+      case 'delete':
+        node_gallery_access_delete_node_access($node->nid);
+        break;
+      case 'insert':
+      case 'update':
+          $access->nid = $node->nid;
+          $access->uid = $node->uid;
+          $access->access_type = $node->access_type;
+          if ($access->access_type == NODE_GALLERY_ACCESS_TYPE_PASSWORD) {
+            $access->password = !empty($node->password) ? node_gallery_access_set_password($node->password) : $node->old_password;
+          }
+          //can't rely on the nodeapi's $op value, need to check it out here.
+          if ($old_access = node_gallery_access_exists($node->nid)) {
+            drupal_write_record('node_gallery_access', $access, array('nid'));
+	          //When changing the access type on a gallery, we need to update the access records for the child images too.
+            if ($access->access_type != $old_access->access_type) {
+              node_gallery_access_rebuild($node);
+            }
+          }
+          else {
+            drupal_write_record('node_gallery_access', $access);
+          }
+        break;
+      case 'view':
+        if ($node->access_type == NODE_GALLERY_ACCESS_TYPE_PASSWORD) {
+          _node_gallery_access_redirect($node, $a3);
+        }
+        break;
+    }
+  }
+  
+  //this is a image node;
+  if (in_array($node->type, (array)node_gallery_get_types('image'))) {
+    switch ($op) {
+      case 'view':
+        $gallery_access = node_gallery_access_get_node_access($node->gid);
+        if ($gallery_access->access_type == NODE_GALLERY_ACCESS_TYPE_PASSWORD) {
+          _node_gallery_access_redirect($node, $a3, $node->gid);
+        }
+        break;
+    }
+  }
+}
+
+function _node_gallery_access_redirect(&$node, $teaser, $gid = NULL) {
+  global $user;
+  
+  // If we have been accessed from cron.php (f.e. search indexing)				
+  if (variable_get('cron_semaphore', FALSE)) {
+    $node->title = '';
+    $node->teaser = '';
+    $node->body = '';
+    $node->content = array();
+  }
+  else {
+    if (!$user->uid && variable_get('cache', 0)) {
+      $GLOBALS['conf']['cache'] = FALSE;
+    }
+    if ($user->uid != $node->uid && !node_gallery_access_check_access($node)) {
+      $id = (!empty($gid) && is_numeric($gid)) ? $gid : $node->nid;
+      // If node is password protected and not teaser nor page view and not owner of node
+      if (!isset($_SESSION['_node_gallery']['passwords'][$id])) {
+        //a4 for page
+        if (!$teaser) {
+          $_SESSION['_node_gallery']['current'] = $id;
+          drupal_goto('node_gallery/enterpassword', 'destination='. $_GET['q']);
+        } //teaser
+        else {
+          $node->teaser = '';
+          $node->body = '';
+          $node->content = array();
+          
+          $gallery = node_load($id);
+          $node->filepath = node_gallery_access_default_pass_image();
+          $node->content['pass'] = array('#value' => l(theme('image_view', $gallery->config['teaser']['image'], $node), 'node/'. $node->nid,
+           array('html' => TRUE)));
+        }
+      }
+    }
+  }
+}
+
+function node_gallery_access_default_pass_image($type = 'image') {
+  return variable_get("ng_access_pass_$type", drupal_get_path('module', 'node_gallery_access') .'/images/passAlbum.gif');
+}
+
+/**
+ * Implementation of hook_node_access_records()
+ */
+function node_gallery_access_node_access_records($node) {
+  //if node is a gallery type
+  if (in_array($node->type, (array)node_gallery_get_types())) {
+    $access_type = $node->access_type;
+    $owner = $node->uid;
+  }
+  //if node is a image type, fetch the parent gallery and it's access type
+  if (in_array($node->type, (array)node_gallery_get_types('image'))) {
+    if (empty($node->gid)) {
+      $node->gid = db_result(db_query("SELECT gid FROM {node_galleries} WHERE nid = %d", $node->nid));
+    }
+    // On images, we care about the owner of the *gallery*, not this image.
+    $gallery = node_load($node->gid);
+    $owner = $gallery->uid;
+    
+    $access_type = node_gallery_access_get_node_access($node->gid)->access_type;
+  }
+  $priority = variable_get('ng_access_priority', 0);
+  if ($access_type == NODE_GALLERY_ACCESS_TYPE_PRIVATE) {
+      $grants[] = array(
+        'realm' => 'ng_access_author',
+        'gid' => $owner,
+        'grant_view' => TRUE,
+        'grant_update' => TRUE,
+        'grant_delete' => TRUE,
+        'priority' => $priority,
+      );
+      $grants[] = array(
+        'realm' => 'ng_access_private_view',
+        'gid' => 1,
+        'grant_view' => TRUE,
+        'grant_update' => FALSE,
+        'grant_delete' => FALSE,
+        'priority' => $priority,
+      );
+      $grants[] = array(
+        'realm' => 'ng_access_private_admin',
+        'gid' => 1,
+        'grant_view' => TRUE,
+        'grant_update' => TRUE,
+        'grant_delete' => TRUE,
+        'priority' => $priority,
+      );
+  }
+  return $grants;
+}
+
+/**
+ * Implementation of hook_node_grants()
+ */
+function node_gallery_access_node_grants($account, $op) {
+  if ($op == 'view' && user_access(NODE_GALLERY_ACCESS_PERM_ACCESS_PRIVATE_CONTENTS, $account)) {
+    $grants['ng_access_private_view'] = array(1);
+  }
+
+  if (user_access(NODE_GALLERY_ACCESS_PERM_EDIT_PRIVATE_CONTENTS, $account) && ($op == 'update' || $op == 'delete')) {
+    $grants['ng_access_private_admin'] = array(1);
+  }
+
+  if ($op == 'view' && user_access(NODE_GALLERY_ACCESS_PERM_ACCESS_PASSWORD_CONTENTS, $account)) {
+    $grants['ng_access_password_view'] = array(1);
+  }
+
+  if (user_access(NODE_GALLERY_ACCESS_PERM_EDIT_PASSWORD_CONTENTS, $account) && ($op == 'update' || $op == 'delete')) {
+    $grants['ng_access_password_admin'] = array(1);
+  }
+
+  $grants['ng_access_author'] = array($account->uid);
+  return $grants;
+}
+
+function node_gallery_access_rebuild($gallery, $batch_mode = TRUE) {
+  $images = node_gallery_get_all_images($gallery);
+  if ($images) {
+    $nids = array_keys($images);
+    db_query("DELETE FROM {node_access} WHERE nid IN (". db_placeholders($nids) .")", $nids);
+    // Only recalculate if the site is using a node_access module.
+    if (count(module_implements('node_grants'))) {
+      if ($batch_mode) {
+        $batch = array(
+          'title' => t('Rebuilding gallery access permissions'),
+          'operations' => array(
+            array('_node_gallery_access_rebuild_batch_operation', array($nids)),
+          ),
+          'finished' => '_node_gallery_access_rebuild_batch_finished'
+        );
+        batch_set($batch);
+      }
+      else {
+        // If not in 'safe mode', increase the maximum execution time.
+        if (!ini_get('safe_mode')) {
+          set_time_limit(240);
+        }
+        foreach ($nids as $nid) {
+          $loaded_node = node_load($nid, NULL, TRUE);
+          if (!empty($loaded_node)) {
+            node_access_acquire_grants($loaded_node);
+          }
+        }
+      }
+    }
+    else {
+      // Not using any node_access modules. Add the default grant.
+      db_query("INSERT INTO {node_access} VALUES (0, 0, 'all', 1, 0, 0)");
+    }
+  
+    if (!isset($batch)) {
+      drupal_set_message(t('Gallery permissions have been rebuilt.'));
+      node_access_needs_rebuild(FALSE);
+      cache_clear_all();
+    }
+  }
+}
+
+function _node_gallery_access_rebuild_batch_operation($nids, &$context) {
+  if (!isset($context['sandbox']['progress'])) {
+    $context['sandbox']['progress'] = 0;
+    $context['sandbox']['total'] = count($nids);
+    $context['results'][] = t('You rebuilt !num\'s permissions.', array('!num' => format_plural(count($nids), '1 image', '@count images')));
+  }
+  foreach ($nids as $nid) {
+    $loaded_node = node_load($nid, NULL, TRUE);
+    if (!empty($loaded_node)) {
+      node_access_acquire_grants($loaded_node);
+    }
+    $context['sandbox']['progress'] ++;
+  }
+  $context['finished'] = $context['sandbox']['progress']/$context['sandbox']['total'];
+}
+
+function _node_gallery_access_rebuild_batch_finished($success, $results, $operations) {
+  if ($success) {
+    // Here we do something meaningful with the results.
+    drupal_get_messages('status', TRUE);
+    $results = is_string($results) ? array($results) : $results;
+    foreach ($results as $result) {
+      drupal_set_message($result);
+    }
+  }
+  else {
+    // An error occurred.
+    // $operations contains the operations that remained unprocessed.
+    $error_operation = reset($operations);
+    $message = 'An error occurred while processing '. $error_operation[0] .' with arguments :'. print_r($error_operation[0], TRUE);
+    drupal_set_message($message);
+  }
+}
+
+
+/**
+ * Implementation hook_views_api().
+ */
+function node_gallery_access_views_api() {
+  return array('api' => 2.0,'path' => drupal_get_path('module','node_gallery_access').'/views2inc');
+}

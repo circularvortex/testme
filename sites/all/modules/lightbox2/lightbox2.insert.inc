@@ -1,5 +1,5 @@
 <?php
-// $Id: lightbox2.insert.inc,v 1.1.2.2 2010/05/06 09:13:52 snpower Exp $
+// $Id: lightbox2.insert.inc,v 1.1.2.3 2010/06/07 14:09:14 snpower Exp $
 
 /**
  * @file
@@ -15,7 +15,7 @@ function lightbox2_insert_styles() {
   // Reformat CCK formatter ids as Insert style ids.
   foreach ($cck_formatters as $formatter_id => $formatter_info) {
     // Currently only the "imagefield--lightbox2" formatters are implemented as styles.
-    if (preg_match('/^imagefield__lightbox2__([^_]+)__([^_]+)$/', $formatter_id, $matches)) {
+    if (preg_match('/^imagefield__lightbox2__((?:_(?!_)|[^_])+)__((?:_(?!_)|[^_])+)$/', $formatter_id, $matches)) {
       $style_id = 'lightbox2--' . $matches[1] . '--' . $matches[2];
       $insert_styles[$style_id] = $formatter_info;
     }

@@ -106,7 +106,9 @@ function arcimoto_ajax() {
   // Build our new form element.
   $form_element = null;
 
-  // Build the new form.
+  
+  
+// Build the new form.
   $form_state = array('submitted' => FALSE);
   $form_build_id = $_POST['form_build_id'];
   // Add the new element to the stored form. Without adding the element to the
@@ -258,6 +260,19 @@ function arcimoto_calculator_form_validate($form, &$form_state) {
 }
 
 function arcimoto_menu() {
+  $items = array();
+  
+  $items['arcimoto/ajax'] = array(
+    'page callback' => 'arcimoto_ajax',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+  return $items;
+}
+
+/* Jeremy's orginal
+
+function arcimoto_menu() {
   $items['arcimoto/ajax'] = array(
     'page callback' => 'arcimoto_ajax',
     'access callback' => 'arcimoto_access_callback',
@@ -266,6 +281,9 @@ function arcimoto_menu() {
   );
   return $items;
 }
+*/
+
+
 
 function arcimoto_access_callback() {
   return TRUE;
@@ -370,7 +388,7 @@ function arcimoto_checkout_form_alter(&$form, &$form_state, $form_id) {
       62 => 'Washington'
     );
     $form['panes']['delivery']['delivery_zone']['#options'] = $states_we_deliver_to;
-    $form['panes']['delivery']['delivery_zone']['#suffix'] = l('Not on the west coast? Let us know!', 'vehicle/preorder/outside-sales-area');
+    $form['panes']['delivery']['delivery_zone']['#suffix'] = l('Not on the west coast? Let us know!', 'preorder/outside-sales-area');
     
     
     // Make the billing address not required
@@ -390,7 +408,7 @@ function arcimoto_checkout_form_alter(&$form, &$form_state, $form_id) {
     
     // Add a "change quanitity link"
     $form['panes']['cart']['cart_change_quantity'] = array(
-          '#value' => '<p class="right">'.l('Order more than one', 'vehicle/preorder/quantity').'</p>',
+          '#value' => '<p class="right">'.l('Order more than one', 'preorder/quantity').'</p>',
           '#weight' => '10'
         );
     
@@ -404,7 +422,7 @@ function arcimoto_checkout_form_alter(&$form, &$form_state, $form_id) {
   }
   
   // Make the form submit to the real checkout page so there is no redirect in the middle (which causes the CC details to be lost
-  $form['#action'] = url('vehicle/preorder/checkout-full');
+  $form['#action'] = url('preorder/checkout-full');
 }
 
 function arcimoto_comment_form_alter(&$form, &$form_state, $form_id) {

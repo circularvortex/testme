@@ -1,0 +1,378 @@
+<?php
+// $Id: touch_icons.module,v 1.1.2.12 2010/02/14 13:59:38 andrewmacpherson Exp $
+
+/**
+ * @file
+ *
+ * Adds a fieldset to theme settings form  which allows site administrators to
+ * specify Apple Touch icons for Drupal websites. The Touch icon settings behave
+ * in a similar manner to the Site Logo and Favicon settings provided by Drupal
+ * core.
+ *
+ * Also provides a simple means for theme developers to provide default Touch
+ * icons with their theme.
+ */
+
+/**
+ * helper function to get theme key for theme settings page
+ *
+ * if we don't receive $key parameter like system_theme_settings()
+ * we can get it from path, i.e. 'admin/build/themes/settings/THEMENAME'
+ *
+ * NOTE: this is NOT the active theme for the website...
+ * it is just the theme currently being configured on the theme settings form
+ */
+function _touch_icons_get_theme_settings_key() {
+  $key = arg(4);
+  if ($key == "global") { // undesirable side-effect of admin_menu.module
+    $key = '';
+  }
+  return $key;
+}
+
+/**
+ * Add Apple Touch icon customization settings to the theme settings form
+ *
+ * @see system_theme_settings()
+ *
+ * Implementation of hook_form_alter().
+ */
+function touch_icons_form_alter(&$form, $form_state, $form_id) {
+  switch ($form_id) {
+    case 'system_theme_settings':
+
+      // default values for touch_icons theme_settings
+      $defaults = array(
+        'toggle_touch_icon_plain' => 1,
+        'default_touch_icon_plain' => 1,
+        'toggle_touch_icon_precomp' => 1,
+        'default_touch_icon_precomp' => 1,
+      );
+
+      // we don't receive $key parameter like system_theme_settings()
+      $key = _touch_icons_get_theme_settings_key();
+      // get theme_settings, using defaults if no touch_icons settings exist
+      $settings = array_merge($defaults, theme_get_settings($key));
+
+      if (module_exists('themesettings_ui_extras')) {
+        // integrate with themesettings_ui_extras.module
+        // javascript behaviour to show/hide custom path and file upload elements
+        drupal_add_js(drupal_get_path('module', 'touch_icons') .'/touch_icons_themesettings_ui_extras.js');
+      }
+
+      // touch icons fieldset
+      $form['touch_icons'] = array(
+        '#type'        => 'fieldset',
+        '#title'       => t('iPhone/iPod Touch icon settings'),
+        '#description' => t('These icons will be displayed when bookmarking your web site on the home-screen of an iPhone/iPod Touch device.'),
+      );
+
+      // plain touch icon settings
+      $form['touch_icons']['plain'] = array(
+        '#type'        => 'fieldset',
+        '#title'       => t('iPhone/iPod Touch icon'),
+        '#description' => t('Most iPhone/iPod Touch models can display this kind of icon. Rounded corners and a glass-effect overlay will be applied to the icon automatically by the iPhone/iPod Touch device.'),
+        '#collapsible' => TRUE,
+        '#collapsed'   => FALSE,
+      );
+
+      if (!module_exists('themesettings_ui_extras')) {
+        // core-style checkboxes
+        $form['theme_settings']['toggle_touch_icon_plain'] = array(
+          '#type' => 'checkbox',
+          '#title' => t('iPhone/iPod Touch icon'),
+          '#default_value' => $settings['toggle_touch_icon_plain'],
+        );
+        $form['touch_icons']['plain']['default_touch_icon_plain'] = array(
+          '#type' => 'checkbox',
+          '#title' => t('Use the default iPhone/iPod Touch icon.'),
+          '#default_value' => $settings['default_touch_icon_plain'],
+          '#tree' => FALSE,
+          '#description' => t('Check here if you want the theme to use the Touch icon supplied with it.'),
+        );
+      }
+      else {
+        // integrate with themesettings_ui_extras.module
+        // deduce which plain touch icon radio-button to select
+        if ($settings['toggle_touch_icon_plain'] == '0') {
+          $touch_icon_plain_display_value = 'none';
+        }
+        elseif (($settings['toggle_touch_icon_plain'] == 1) && ($settings['default_touch_icon_plain'] == 1)) {
+          $touch_icon_plain_display_value = 'default';
+        }
+        elseif (($settings['toggle_touch_icon_plain'] == 1) && ($settings['default_touch_icon_plain'] == 0)) {
+          $touch_icon_plain_display_value = 'custom';
+        }
+
+        // declare radio button controls
+        $form['touch_icons']['plain']['touch_icon_plain_display'] = array(
+          '#type' => 'radios',
+          '#title' => t('Display touch icon'),
+          '#description' => t('Whether a Touch icon should be displayed.'),
+          '#options' => array(
+             'none' => 'No touch icon',
+             'default' => 'Default touch icon',
+             'custom' => 'Custom touch icon',
+          ),
+          '#default_value' => $touch_icon_plain_display_value,
+          '#element_validate' => array('_touch_icons_plain_radio_validate'),
+        );
+      }
+
+      $form['touch_icons']['plain']['touch_icon_path_plain'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Path to custom icon'),
+        '#default_value' => $settings['touch_icon_path_plain'],
+        '#description' => t('The path to the file you would like to use as your Touch icon instead of the default Touch icon.'),
+      );
+      $form['touch_icons']['plain']['touch_icon_upload_plain'] = array(
+        '#type' => 'file',
+        '#title' => t('Upload icon'),
+        '#description' => t("If you don't have direct file access to the server, use this field to upload your Touch icon."),
+        '#element_validate' => array('_touch_icons_plain_upload_validate'),
+      );
+
+      // precomposed touch icon settings
+      $form['touch_icons']['precomp'] = array(
+        '#type'        => 'fieldset',
+        '#title'       => t('iPhone/iPod Touch icon (precomposed)'),
+        '#description' => t("A &quot;precomposed&quot; Touch icon will not have a glass-effect overlay applied by the iPhone/iPod Touch device, allowing you to have more control over the Touch icon's appearance.") . '<br />' . t('<strong>Caution:</strong> some iPhone/iPod Touch devices with older firmware <em>will not display</em> this kind of icon. If you enable a precomposed Touch icon for your site, it is <em>highly recommended</em> that you also enable a plain version for devices with older firmware.'),
+        '#collapsible' => TRUE,
+        '#collapsed'   => FALSE,
+      );
+
+      if (!module_exists('themesettings_ui_extras')) {
+        // core-style checkboxes
+        $form['theme_settings']['toggle_touch_icon_precomp'] = array(
+          '#type' => 'checkbox',
+          '#title' => t('iPhone/iPod Touch icon (precomposed)'),
+          '#default_value' => $settings['toggle_touch_icon_precomp'],
+        );
+        $form['touch_icons']['precomp']['default_touch_icon_precomp'] = array(
+          '#type' => 'checkbox',
+          '#title' => t('Use the default precomposed iPhone/iPod Touch icon.'),
+          '#default_value' => $settings['default_touch_icon_precomp'],
+          '#tree' => FALSE,
+          '#description' => t('Check here if you want the theme to use the precomposed Touch icon supplied with it.'),
+        );
+      }
+      else {
+        // integrate with themesettings_ui_extras.module
+        // deduce which precomposed touch icon radio-button to select
+        if ($settings['toggle_touch_icon_precomp'] == '0') {
+          $touch_icon_precomp_display_value = 'none';
+        }
+        elseif (($settings['toggle_touch_icon_precomp'] == 1) && ($settings['default_touch_icon_precomp'] == 1)) {
+          $touch_icon_precomp_display_value = 'default';
+        }
+        elseif (($settings['toggle_touch_icon_precomp'] == 1) && ($settings['default_touch_icon_precomp'] == 0)) {
+          $touch_icon_precomp_display_value = 'custom';
+        }
+
+        // declare radio button controls
+        $form['touch_icons']['precomp']['touch_icon_precomp_display'] = array(
+          '#type' => 'radios',
+          '#title' => t('Display precomposed touch icon'),
+          '#description' => t('Whether a precomposed Touch icon should be displayed.'),
+          '#options' => array(
+             'none' => 'No precomposed touch icon',
+             'default' => 'Default precomposed touch icon',
+             'custom' => 'Custom precomposed touch icon',
+          ),
+          '#default_value' => $touch_icon_precomp_display_value,
+          '#element_validate' => array('_touch_icons_precomp_radio_validate'),
+        );
+      }
+
+      $form['touch_icons']['precomp']['touch_icon_path_precomp'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Path to custom precomposed icon'),
+        '#default_value' => $settings['touch_icon_path_precomp'],
+        '#description' => t('The path to the file you would like to use as your precomposed Touch icon instead of the default precomposed Touch icon.'),
+      );
+      $form['touch_icons']['precomp']['touch_icon_upload_precomp'] = array(
+        '#type' => 'file',
+        '#title' => t('Upload precomposed icon'),
+        '#description' => t("If you don't have direct file access to the server, use this field to upload your precomposed Touch icon."),
+        '#element_validate' => array('_touch_icons_precomp_upload_validate'),
+      );
+
+      // adjust form element weights, keep things pretty
+      // @todo review weights - do any other contrib modules alter this form?
+      //   YES, designkit adds fieldsets too.
+      if ($form['engine_specific']) {
+        $form['engine_specific']['#weight'] = 8;
+      }
+      if ($form['theme_specific']) {
+        $form['theme_specific']['#weight'] = 9;
+      }
+      $form['buttons']['#weight'] = 10; // same weight as designkit uses
+
+      // integrate with themsettings_verticaltabs.module
+      if ( module_exists('themesettings_verticaltabs') ) {
+        if ( module_exists('themesettings_ui_extras') ) {
+          // radio buttons
+          $jsfile = 'touch_icons_verticaltabs_radios.js';
+        }
+        else {
+          $jsfile = 'touch_icons_verticaltabs.js';
+        }
+        $form['touch_icons']['#attached'] = array(
+          'js' => array(
+            'vertical-tabs' => drupal_get_path('module', 'touch_icons') . '/' . $jsfile,
+          ),
+        );
+      }
+  }
+}
+
+/**
+ * Validate plain icon display setting (themesettings_ui_extras integration)
+ */
+function _touch_icons_plain_radio_validate($element, &$form_state) {
+  switch ($form_state['values']['touch_icon_plain_display']) {
+    case 'none':
+      $form_state['values']['toggle_touch_icon_plain'] = 0;
+      // best to set a default value, in case module disabled later...
+      $form_state['values']['default_touch_icon_plain'] = 1;
+      break;
+    case 'default':
+      $form_state['values']['toggle_touch_icon_plain'] = 1;
+      $form_state['values']['default_touch_icon_plain'] = 1;
+      break;
+    case 'custom':
+      $form_state['values']['toggle_touch_icon_plain'] = 1;
+      $form_state['values']['default_touch_icon_plain'] = 0;
+      break;
+  }
+  // no need to store this
+  unset($form_state['values']['touch_icon_plain_display']);
+}
+
+/**
+ * Validate precomp icon display setting (themesettings_ui_extras integration)
+ */
+function _touch_icons_precomp_radio_validate($element, &$form_state) {
+  switch ($form_state['values']['touch_icon_precomp_display']) {
+    case 'none':
+      $form_state['values']['toggle_touch_icon_precomp'] = 0;
+      // best to set a default value, in case module disabled later...
+      $form_state['values']['default_touch_icon_precomp'] = 1;
+      break;
+    case 'default':
+      $form_state['values']['toggle_touch_icon_precomp'] = 1;
+      $form_state['values']['default_touch_icon_precomp'] = 1;
+      break;
+    case 'custom':
+      $form_state['values']['toggle_touch_icon_precomp'] = 1;
+      $form_state['values']['default_touch_icon_precomp'] = 0;
+      break;
+  }
+  // no need to store this
+  unset($form_state['values']['touch_icon_precomp_display']);
+}
+
+/**
+ * Validate custom plain touch icon upload
+ */
+function _touch_icons_plain_upload_validate($element, &$form_state) {
+  // need theme key for saving theme-specific icons
+  // e.g. garland_apple-touch-icon.png
+  $key = _touch_icons_get_theme_settings_key();
+
+  // ensure there is a directory to save touch icons
+  $directory_path = file_directory_path() . '/touch_icons';
+  file_check_directory($directory_path, FILE_CREATE_DIRECTORY);
+
+  // Handle plain Touch icon upload
+  if ($file = file_save_upload('touch_icon_upload_plain', array('file_validate_is_image' => array()))) {
+    $parts = pathinfo($file->filename);
+    $filename = ($key) ? 'touch_icons/' . str_replace('/', '_', $key) . '_apple-touch-icon.' . $parts['extension'] : 'touch_icons/' . 'apple-touch-icon.' . $parts['extension'];
+
+    if (file_copy($file, $filename, FILE_EXISTS_REPLACE)) {
+      drupal_set_message(t('The new Touch icon was saved.'));
+      $form_state['values']['touch_icon_path_plain'] = $file->filepath;
+
+      // keep consistent with core logo/favicon behaviour
+      $form_state['values']['default_touch_icon_plain'] = 0;
+      $form_state['values']['toggle_touch_icon_plain'] = 1;
+    }
+  }
+}
+
+/**
+ * Validate custom precomposed touch icon upload
+ */
+function _touch_icons_precomp_upload_validate($element, &$form_state) {
+  // need theme key for saving theme-specific icons
+  // e.g. garland_apple-touch-icon.png
+  $key = _touch_icons_get_theme_settings_key();
+
+  // ensure there is a directory to save touch icons
+  $directory_path = file_directory_path() . '/touch_icons';
+  file_check_directory($directory_path, FILE_CREATE_DIRECTORY);
+
+  // Handle precomposed icon upload
+  if ($file = file_save_upload('touch_icon_upload_precomp', array('file_validate_is_image' => array()))) {
+    $parts = pathinfo($file->filename);
+    $filename = ($key) ? 'touch_icons/' . str_replace('/', '_', $key) . '_apple-touch-icon-precomposed.' . $parts['extension'] : 'touch_icons/' . 'apple-touch-icon-precomposed.' . $parts['extension'];
+
+    if (file_copy($file, $filename, FILE_EXISTS_REPLACE)) {
+      drupal_set_message(t('The new precomposed Touch icon was saved.'));
+      $form_state['values']['touch_icon_path_precomp'] = $file->filepath;
+
+      // keep consistent with core logo/favicon behaviour
+      $form_state['values']['default_touch_icon_precomp'] = 0;
+      $form_state['values']['toggle_touch_icon_precomp'] = 1;
+    }
+  }
+}
+
+/**
+ * Implementation of MODULENAME_preprocess_page().
+ */
+function touch_icons_preprocess_page(&$variables) {
+  global $theme_key;
+  $themes = list_themes();
+  $theme_object = $themes[$theme_key];
+
+  // build apple-touch-icon URL
+  $url_plain = '';
+  if (theme_get_setting('toggle_touch_icon_plain')) {
+      if (theme_get_setting('default_touch_icon_plain')) {
+        if (file_exists($touch_icon = dirname($theme_object->filename) . '/apple-touch-icon.png')) {
+          $url_plain = base_path() . $touch_icon;
+        }
+        else {
+          $url_plain = base_path() . drupal_get_path('module', 'touch_icons') . '/apple-touch-icon.png';
+        }
+      }
+      elseif (theme_get_setting('touch_icon_path_plain')) {
+        $url_plain = base_path() . theme_get_setting('touch_icon_path_plain');
+      }
+  }
+
+  // build apple-touch-icon-precomposed URL
+  $url_precomp = '';
+  if (theme_get_setting('toggle_touch_icon_precomp')) {
+      if (theme_get_setting('default_touch_icon_precomp')) {
+        if (file_exists($touch_icon_precomp = dirname($theme_object->filename) . '/apple-touch-icon-precomposed.png')) {
+          $url_precomp = base_path() . $touch_icon_precomp;
+        }
+        else {
+          $url_precomp = base_path() . drupal_get_path('module', 'touch_icons') . '/apple-touch-icon-precomposed.png';
+        }
+      }
+      elseif (theme_get_setting('touch_icon_path_precomp')) {
+        $url_precomp = base_path() . theme_get_setting('touch_icon_path_precomp');
+      }
+  }
+
+  // output links
+  if (check_url($url_plain)) {
+    $variables['head'] .= '<link href="' . $url_plain . '" type="' . file_get_mimetype($url_plain) . '" rel="apple-touch-icon" />' . "\n";
+  }
+  if (check_url($url_precomp)) {
+    $variables['head'] .= '<link href="' . $url_precomp . '" type="' . file_get_mimetype($url_precomp) . '" rel="apple-touch-icon-precomposed" />' . "\n";
+  }
+}

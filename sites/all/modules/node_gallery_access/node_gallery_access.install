@@ -1,0 +1,119 @@
+<?php
+// $Id: node_gallery_access.install,v 1.2 2010/01/12 22:26:13 justintime Exp $
+
+/**
+ * @file node_gallery_access.install
+ * 
+ * Node gallery access install file. 
+ */
+ 
+/**
+ * Implementation of hook_schema()
+ */
+function node_gallery_access_schema() {
+  $schema = array();
+  $schema['node_gallery_access'] = array(
+    'fields' => array(
+      'nid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => t('Gallery node id.'),
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => t('Gallery node uid.'),
+      ),
+      'access_type' => array(
+        'type' => 'int',
+        'size' => 'tiny',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'password' => array(
+        'description' => t('The sha1 hashed password for the given node.'),
+        'type' => 'varchar',
+        'length' => 40,
+        'not null' => TRUE,
+        'default' => ''
+      ),
+    ),
+    'unique keys' => array(
+      'nid' => array('nid'),
+    ),
+  );
+  
+  return $schema;
+}
+
+/**
+ * Implementation of hook_requirements()
+ */
+function node_gallery_access_requirements($phase) {
+  $requirements = array();
+  $t = get_t();
+
+  switch ($phase) {
+    case 'install':
+      $error = FALSE;
+      // TODO: is all this really necessary now?
+      // node_gallery.install will abort enabling node_gallery based upon the presence of imagecache.
+      // If so, we must abort too, otherwise node_gallery_access is enabled while node_gallery is disabled (AND locked!) - which yields a broken system.
+      // (The order in which modules are installed is undetermined.
+      // We'll test for presence of imagecache OR for node_gallery already having been aborted.
+      // Testing for presence of node_gallery is conceptually better, but inconvenient for the user who will have a much higher chance of an error message.)
+      if (!module_exists('imagecache')) {
+        $requirements['node_gallery_access'] = array(
+          'title' => $t('Node Gallery Access requires'),
+          'value' => $t(' ImageCache module to be pre-installed. If ImageCache is now installed, please enable Node Gallery Access again.  If ImageCache and Node Gallery Access are both enabled and Node Gallery is disabled and grayed out unchecked, saving the module settings page again will install Node Gallery.'),
+          'severity' => REQUIREMENT_ERROR,
+        );
+      }
+      else {
+        $msgs = drupal_set_message();
+        if ($msgs && isset($msgs['error'])) {
+          foreach ($msgs['error'] as $msg) {
+            if (strpos($msg, 'Node Gallery requires') !== FALSE) {
+              $requirements['node_gallery_access'] = array(
+                'title' => $t('Node Gallery Access requires'),
+                'value' => $t(' ImageCache module to be pre-installed. If ImageCache is now installed, please enable Node Gallery Access again.   If ImageCache and Node Gallery Access are both enabled and Node Gallery is disabled and grayed out unchecked, saving the module settings page again will install Node Gallery.'),
+                'severity' => REQUIREMENT_ERROR,
+              );
+            }
+          }
+        }
+      }
+    break;
+  }
+
+  return $requirements;
+}
+
+function node_gallery_access_install_default_type() {
+    $gallery_types = drupal_map_assoc(node_gallery_get_types());
+    if (array_key_exists('node_gallery_gallery',$gallery_types)) {
+	    variable_set('node_gallery_access_types', array('node_gallery_gallery','node_gallery_gallery'));
+    }
+}
+
+/**
+ * Implementation of hook_install()
+ */
+function node_gallery_access_install() {
+  drupal_install_schema('node_gallery_access');
+  $weight = db_result(db_query("SELECT weight FROM {system} WHERE name = 'node_gallery' AND type = 'module'"));
+  db_query("UPDATE {system} SET weight = %d WHERE name = 'node_gallery_access' AND type = 'module'", $weight + 1);
+  node_gallery_access_install_default_type();
+}
+
+/**
+ * Implementation of hook_uninstall()
+ */
+function node_gallery_access_uninstall() {
+  drupal_uninstall_schema('node_gallery_access');
+}

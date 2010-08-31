@@ -1,0 +1,15 @@
+; $Id: node_gallery_access.info,v 1.2 2010/01/12 22:26:13 justintime Exp $
+
+name = Node Gallery Access
+description = "Enable access controls for Node Gallery galleries."
+core = 6.x
+dependencies[] = node_gallery
+package = Node Gallery
+version = "6.x-1.0-BETA1"
+
+; Information added by drupal.org packaging script on 2010-01-13
+version = "6.x-2.0-beta2"
+core = "6.x"
+project = "node_gallery_access"
+datestamp = "1263352506"
+

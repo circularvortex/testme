@@ -1,0 +1,4 @@
+$Id: CHANGELOG.txt,v 1.2 2010/01/12 22:26:13 justintime Exp $
+
+- By default, we will apply access control on the node_gallery_gallery content type
+- Implementing Views2 integration.

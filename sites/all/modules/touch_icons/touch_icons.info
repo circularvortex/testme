@@ -1,0 +1,12 @@
+; $Id: touch_icons.info,v 1.2.2.1 2010/01/20 09:37:07 andrewmacpherson Exp $
+name = Touch icons
+description = Provides additional theme settings to display special Web Clip icons on iPhone/iPod Touch devices.
+core = 6.x
+package = Theme settings
+
+; Information added by drupal.org packaging script on 2010-02-19
+version = "6.x-1.0-beta4"
+core = "6.x"
+project = "touch_icons"
+datestamp = "1266564610"
+
