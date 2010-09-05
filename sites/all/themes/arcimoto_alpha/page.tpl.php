@@ -81,7 +81,7 @@ document.writeln('<scr' + 'ipt language="JavaScript" src="'+tl_loc0+'" type="tex
   
 	<?php if ($messages or $breadcrumb or $help): ?>
 	  <div id="content-header" class="grid_16">
-		<?php if ($section_title = 'admin') print $breadcrumb; // This is inelegant, uses context title, FIXME ?>
+		<?php // * if ($section_title = 'admin') print $breadcrumb; // This is inelegant, uses context title, FIXME *// ?>
 		<?php if($messages) : ?>
 		    <div id="console" class="grid_16">
 		      <?php print $messages ?>

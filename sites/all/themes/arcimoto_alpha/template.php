@@ -1,9 +1,5 @@
 <?php
 
-function hook_theme($existing, $type, $theme, $path) {
-
-}
-
 /**
  * JavaScript additions ============================================================
  */
@@ -137,24 +133,6 @@ function phptemplate_preprocess_block(&$vars) {
  * Hook functions ============================================================
  */
  
-function arcimoto_alpha_blocks($region) {
-  variable_set('current_region', $region);
-  
-  $output = '';
-
-  if ($list = block_list($region)) {
-    foreach ($list as $key => $block) {
-      // $key == <i>module</i>_<i>delta</i>
-      $output .= theme('block', $block);
-    }
-  }
-
-  // Add any content assigned to this region through drupal_set_content() calls.
-  $output .= drupal_get_content($region);
-
-  return $output;
-}
-
 
 /**
  * Return a themed set of links.  
@@ -348,7 +326,7 @@ function arcimoto_alpha_user_box($user) {
   } else {
     $output = '
 		  <div class="login-block">
-				'.l('Logout', 'logout').' | <a href="/user">Profile</a>
+				'.l('Logout', 'logout').' | <a href="/user/'. $user->name . '">Profile</a>
 		</div><!-- /login-block-->
         ';
   }
