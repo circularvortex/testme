@@ -1,5 +1,5 @@
 <?php
-// $Id: page.admin.inc,v 1.18.2.6 2010/02/01 20:25:00 merlinofchaos Exp $
+// $Id: page.admin.inc,v 1.18.2.11 2010/07/21 17:37:04 merlinofchaos Exp $
 
 /**
  * @file
@@ -37,6 +37,10 @@ function page_manager_page_menu(&$items, $task) {
     'page arguments' => array('page_manager_page_import_subtask', 'page'),
     'type' => MENU_LOCAL_TASK,
   ) + $base;
+  if ($access_callback == 'user_access') {
+    $items['admin/build/pages/import']['access callback'] = 'ctools_access_multiperm';
+    $items['admin/build/pages/import']['access arguments'][] = 'use PHP for block visibility';
+  }
 
   // AJAX callbacks for argument modal.
   $items['admin/build/pages/argument'] = array(
@@ -188,6 +192,7 @@ function page_manager_page_menu_item($task, $menu, $access_arguments, $page_argu
  * Page callback to add a subtask.
  */
 function page_manager_page_add_subtask($task_name = NULL, $step = NULL) {
+  ctools_include('context');
   $task = page_manager_get_task('page');
   $task_handler_plugins = page_manager_get_task_handler_plugins($task);
   if (empty($task_handler_plugins)) {
@@ -233,7 +238,17 @@ function page_manager_page_add_subtask($task_name = NULL, $step = NULL) {
     }
 
     $form_info['path'] = "admin/build/pages/add/$task_name/%step";
+  }
+  else {
+    $new_page = page_manager_page_new();
+    $new_page->name = NULL;
 
+    $page = new stdClass();
+    page_manager_page_new_page_cache($new_page, $page);
+    $form_info['path'] = 'admin/build/pages/add/%task_name/%step';
+  }
+
+  if ($step && $step != 'basic') {
     $handler_plugin = page_manager_get_task_handler($page->handler);
 
     $form_info['forms'] += $handler_plugin['forms'];
@@ -275,12 +290,6 @@ function page_manager_page_add_subtask($task_name = NULL, $step = NULL) {
     }
   }
   else {
-    $new_page = page_manager_page_new();
-    $new_page->name = NULL;
-
-    $page = new stdClass();
-    page_manager_page_new_page_cache($new_page, $page);
-    $form_info['path'] = 'admin/build/pages/add/%task_name/%step';
     $form_info['show trail'] = FALSE;
     $form_info['order'] = array(
       'basic' => t('Basic settings'),
@@ -579,6 +588,13 @@ function page_manager_page_form_basic_submit(&$form, &$form_state) {
     $cache->handler = $form_state['values']['handler'];
     $cache->subtask_id = $page->name;
     $plugin = page_manager_get_task_handler($cache->handler);
+
+    // If they created and went back, there might be old, dead handlers
+    // that are not going to be added.
+    //
+    // Remove them:
+    $cache->handlers = array();
+    $cache->handler_info = array();
 
     // Create a new handler.
     $handler = page_manager_new_task_handler($plugin);
@@ -1002,7 +1018,7 @@ function page_manager_page_subtask_argument_ajax($step = NULL, $task_name = NULL
 
   // With 'modal' and 'ajax' true, rendering automatically happens here so
   // we do nothing with the result.
-  ctools_wizard_multistep_form($form_info, $step, $form_state);
+  $output = ctools_wizard_multistep_form($form_info, $step, $form_state);
 }
 
 /**
