@@ -1,0 +1,5 @@
+; $Id$
+name = Arcimoto Angels
+description = Site customization for the Arcimoto Angels feature
+package = Arcimoto
+core = 6.x

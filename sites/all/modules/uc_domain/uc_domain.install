@@ -1,0 +1,47 @@
+<?php
+// $Id: uc_domain.install,v 1.2 2009/03/31 17:50:51 longwave Exp $
+
+/**
+ * @file
+ * Install file.
+ */
+
+/**
+ * Implementation of hook_schema().
+ */
+function uc_domain_schema() {
+  $schema['uc_domain_orders'] = array(
+    'description' => t('Record of which domain an order was placed on.'),
+    'fields' => array(
+      'order_id' => array(
+        'description' => t('The order ID.'),
+        'type' => 'int',
+        'size' => 'medium',
+        'not null' => TRUE,
+      ),
+      'domain_id' => array(
+        'description' => t('The domain ID.'),
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('order_id'),
+  );
+
+  return $schema;
+}
+
+/**
+ * Implementation of hook_install().
+ */
+function uc_domain_install() {
+  drupal_install_schema('uc_domain');
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function uc_domain_uninstall() {
+  drupal_uninstall_schema('uc_domain');
+}

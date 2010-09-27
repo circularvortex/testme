@@ -1,0 +1,84 @@
+<?php
+
+function arcimoto_angels_menu_alter(&$items) {
+ 
+	$items['cart/checkout/complete'] = array(
+	    'title' => 'Order complete',
+	    'description' => 'Display information upon completion of an order.',
+	    'page callback' => 'arcimoto_angels_checkout_complete',
+	    'access arguments' => array('access content'),
+	    'type' => MENU_CALLBACK,
+	  );
+  
+}
+
+
+function arcimoto_angels_checkout_complete() {
+ 	 if (!$_SESSION['do_complete']) {
+	    drupal_goto('cart');
+	  }
+ 
+
+	$order = uc_order_load(intval($_SESSION['cart_order']));
+	  if (empty($order)) {
+	    // Display messages to customers and the administrator if the order was lost.
+	    drupal_set_message(t("We're sorry.  An error occurred while processing your order that prevents us from completing it at this time. Please contact us and we will resolve the issue as soon as possible."), 'error');
+	    watchdog('uc_cart', 'An empty order made it to checkout! Cart order ID: @cart_order', array('@cart_order' => $_SESSION['cart_order']), WATCHDOG_ERROR);
+	    drupal_goto('cart');
+	  }
+	  $output = '';
+	  $output = uc_cart_complete_sale($order, variable_get('uc_new_customer_login', FALSE));
+	  
+		// Add a comment to let sales team know this came in through the site.
+		uc_order_comment_save($order->order_id, 0, t('Order created through website.'), 'admin');
+    
+   /*
+	*  Match Angel Wings SKUs and redirect appropriately.
+    */
+
+		$sku = $order->products[0]->model;
+
+		switch($sku) {
+			case 'WINGS1':
+				$wingstype = 'bronze';
+				break;
+			case 'WINGS5':
+				$wingstype = 'silver';
+				break;
+			case 'WINGS10':
+				$wingstype = 'gold';
+				break;
+			case 'WINGS25':
+				$wingstype = 'mithril';
+				break;
+			case 'WINGS50':
+				$wingstype = 'unobtainium';
+				break;
+			case 'WINGS100':
+				$wingstype = 'wonderflonium';
+				break;
+			case 'WINGS200':
+				$wingstype = 'doublerainbownium';
+				break;
+			case 'WINGS300':
+				$wingstype = '300';
+				break;
+		}
+		
+		$page = 'http://www.arcimoto.com/angels/thankyou/' . $wingstype;
+		drupal_goto($page);
+      
+	  /*
+	  $page = variable_get('uc_cart_checkout_complete_page', '');
+	  if (!empty($page)) {
+	    drupal_goto($page);
+	  }
+	  */
+ 
+
+return $output;
+}
+
+?>
+
+

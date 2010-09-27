@@ -1,0 +1,369 @@
+<?php
+// $Id: uc_domain.module,v 1.7 2010/09/09 11:59:57 longwave Exp $
+
+/**
+ * @file
+ * Ubercart configuration and order integration for Domain Access.
+ */
+
+/*******************************************************************************
+ * Hook Functions (Drupal)
+ ******************************************************************************/
+
+/**
+ * Implementation of hook_domainform().
+ */
+function uc_domain_domainform(&$form) {
+  $form['uc_domain'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Ubercart settings'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE
+  );
+  $form['uc_domain']['uc_domain_payment_methods'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Enable per-domain payment method settings.'),
+    '#default_value' => variable_get('uc_domain_payment_methods', FALSE),
+  );
+  $form['uc_domain']['uc_domain_payment_gateways'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Enable per-domain payment gateway settings.'),
+    '#default_value' => variable_get('uc_domain_payment_gateways', FALSE),
+  );
+}
+
+/**
+ * Implementation of hook_domainconf().
+ */
+function uc_domain_domainconf() {
+  $form['uc_domain'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Ubercart store settings'),
+    '#description' => 'These settings will be available in a set of tokens for orders created at this domain.',
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+  $form['uc_domain']['uc_store_name'] = uc_textfield(t('Store name'), variable_get('uc_store_name', NULL), FALSE, NULL, 64);
+  $form['uc_domain']['uc_store_owner'] = uc_textfield(t('Store owner'), variable_get('uc_store_owner', NULL), FALSE, NULL, 64);
+  $form['uc_domain']['uc_store_email'] = uc_textfield(t('E-mail address'), variable_get('uc_store_email', NULL), FALSE, NULL, 128);
+  $form['uc_domain']['uc_store_phone'] = uc_textfield(t('Phone number'), variable_get('uc_store_phone', NULL), FALSE);
+
+  $form['uc_domain_product'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Ubercart product settings'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+  $form['uc_domain_product']['uc_domain_product_multiplier'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Sell price modifier'),
+    '#description' => 'The sell price for products shown in this domain will be increased (or decreased) by this percentage. Use 0 to disable.',
+    '#default_value' => variable_get('uc_domain_product_multiplier', 0),
+    '#field_suffix' => '%',
+    '#size' => 4,
+  );
+
+  // Order prefix is only used in this module, so it is in a separate fieldset with #domain_setting enabled.
+  $form['uc_domain_order'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Ubercart order settings'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+    '#domain_setting' => TRUE,
+  );
+  $form['uc_domain_order']['uc_domain_order_prefix'] = uc_textfield(t('Order prefix'), variable_get('uc_domain_order_prefix', ''), FALSE, t('This setting will be available as a token for orders created at this domain, and will be automatically prepended to order IDs in invoice templates in Ubercart 2.3 and above.'));
+
+  // Payment methods and gateways.
+  if (variable_get('uc_domain_payment_methods', FALSE) || variable_get('uc_domain_payment_gateways', FALSE)) {
+    module_load_include('inc', 'uc_payment', 'uc_payment.admin');
+  }
+
+  if (variable_get('uc_domain_payment_methods', FALSE)) {
+    $form['uc_payment_methods'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Ubercart payment methods'),
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE,
+    );
+
+    $subform = uc_payment_methods_form();
+    unset($subform['method_paypal_ec']); // Remove Paypal Express Checkout as the links are misleading here.
+    unset($subform['buttons']);
+    unset($subform['#submit']);
+    unset($subform['#theme']);
+    $form['uc_payment_methods'] += $subform;
+  }
+
+  if (variable_get('uc_domain_payment_gateways', FALSE)) {
+    $form['uc_payment_gateways'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Ubercart payment gateways'),
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE,
+    );
+
+    $subform = uc_payment_gateways_form();
+    unset($subform['buttons']);
+    unset($subform['#submit']);
+    unset($subform['#theme']);
+    $form['uc_payment_gateways'] += $subform;
+  }
+
+  return $form;
+}
+
+/**
+ * Implementation of hook_domainwarnings().
+ */
+function uc_domain_domainwarnings() {
+  $warnings = array('uc_store_store_settings_form');
+
+  if (variable_get('uc_domain_payment_methods', FALSE)) {
+    $warnings[] = 'uc_payment_methods_form';
+  }
+
+  if (variable_get('uc_domain_payment_gateways', FALSE)) {
+    $warnings[] = 'uc_payment_gateways_form';
+  }
+
+  return $warnings;
+}
+
+/**
+ * Implementation of hook_token_list().
+ */
+function uc_domain_token_list($type = 'all') {
+  if ($type == 'order' || $type == 'ubercart' || $type == 'all') {
+    $tokens['order']['order-site-login'] = t('A link to the site login page of the original domain of the order.');
+    $tokens['order']['order-site-logo'] = t('The URL for the site logo of the original domain of the order.');
+    $tokens['order']['order-store-name'] = t('The Ubercart store name for the original domain of the order.');
+    $tokens['order']['order-store-url'] = t('The Ubercart store URL for the original domain of the order.');
+    $tokens['order']['order-store-link'] = t("A link to the original order's store using the store name.");
+    $tokens['order']['order-store-owner'] = t('The Ubercart store owner for the original domain of the order.');
+    $tokens['order']['order-store-email'] = t('The Ubercart store e-mail address for the original domain of the order.');
+    $tokens['order']['order-store-address'] = t('The Ubercart store mailing address for the original domain of the order.');
+    $tokens['order']['order-store-help-url'] = t('The URL to the store help page for the original domain of the order.');
+    $tokens['order']['order-store-prefix'] = t('A prefix to identify the original domain of the order.');
+  }
+
+  return $tokens;
+}
+
+/**
+ * Implementation of hook_token_values().
+ */
+function uc_domain_token_values($type, $object = NULL) {
+  switch ($type) {
+    case 'order':
+      global $base_url, $conf;
+      $original_base_url = $base_url;
+      $original_conf = $conf;
+      $domain = domain_lookup($object->domain_id);
+
+      // Temporarily replace global $base_url so url() returns correct results for the domain.
+      $base_url = $domain['path'];
+      if (substr($base_url, -1) == '/') {
+        $base_url = substr($base_url, 0, -1);
+      }
+
+      // Temporarily replace global $conf so variable_get() returns correct results for the domain.
+      $conf['uc_store_name'] = uc_domain_variable_get($object->domain_id, 'uc_store_name', NULL);
+      $conf['uc_store_owner'] = uc_domain_variable_get($object->domain_id, 'uc_store_owner', NULL);
+      $conf['uc_store_email'] = uc_domain_variable_get($object->domain_id, 'uc_store_email', NULL);
+      $conf['uc_store_phone'] = uc_domain_variable_get($object->domain_id, 'uc_store_phone', NULL);
+
+      // If domain_theme is installed, temporarily change the theme so the correct site logo is found.
+      if (module_exists('domain_theme') && $object->domain_id) {
+        $theme = domain_theme_lookup($object->domain_id);
+        $conf['theme_default'] = $theme['theme'];
+      }
+      else {
+        $conf['theme_default'] = uc_domain_variable_get(0, 'theme_default', 'garland');
+      }
+
+      // The global store tokens are now specific to the order domain.
+      foreach (uc_store_token_values('global') as $token => $value) {
+        $values['order-'. $token] = $value;
+      }
+
+      $values['order-store-prefix'] = uc_domain_variable_get($object->domain_id, 'uc_domain_order_prefix', '');
+
+      // Reset globals.
+      $base_url = $original_base_url;
+      $conf = $original_conf;
+      break;
+  }
+
+  return $values;
+}
+
+/**
+ * Implementation of hook_form_alter().
+ */
+function uc_domain_form_alter(&$form, &$form_state, $form_id) {
+  if (variable_get('uc_domain_product_multiplier', 0) && uc_product_is_product_form($form)) {
+    $form['base']['prices']['sell_price']['#description'] = t('This price will be modified by @percent% on this domain.', array('@percent' => variable_get('uc_domain_product_multiplier', 0)));
+  }
+}
+
+/**
+ * Implementation of hook_nodeapi().
+ */
+function uc_domain_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
+  if (variable_get('uc_domain_product_multiplier', 0) && uc_product_is_product($node) && isset($node->sell_price)) {
+    switch ($op) {
+      case 'load':
+        // Modify price for this domain.
+        $node->sell_price *= 1 + (variable_get('uc_domain_product_multiplier', 0) / 100);
+        break;
+
+      case 'prepare':
+        // Reload original price for editing.
+        $node->sell_price = db_result(db_query('SELECT sell_price FROM {uc_products} WHERE vid = %d', $node->vid));
+        break;
+    }
+  }
+}
+
+/*******************************************************************************
+ * Hook Functions (Views)
+ ******************************************************************************/
+
+/**
+ * Implementation of hook_views_pre_render().
+ */
+function uc_domain_views_pre_render(&$view) {
+  if (variable_get('uc_domain_product_multiplier', 0)) {
+    foreach ($view->result as &$row) {
+      if (isset($row->uc_products_sell_price)) {
+        $row->uc_products_sell_price *= 1 + (variable_get('uc_domain_product_multiplier', 0) / 100);
+      }
+    }
+  }
+}
+
+/**
+ * Template preprocess function for uc_order template files.
+ */
+function uc_domain_preprocess_uc_order(&$vars) {
+  global $base_url, $conf;
+  $original_base_url = $base_url;
+  $original_conf = $conf;
+
+  $vars['domain_id'] = $vars['order']->domain_id;
+  $domain = domain_lookup($vars['domain_id']);
+
+  $is_alias = FALSE;
+  foreach ($domain['aliases'] as $alias) {
+    // Check if current base url is an alias, f.ex localhost
+    if (strpos($original_base_url, $alias['pattern'])) {
+      $is_alias = TRUE;
+    }
+  }
+
+  if (!$is_alias) {
+    // Temporarily replace global $base_url so url() returns correct results for the domain.
+    $base_url = $domain['path'];
+    if (substr($base_url, -1) == '/') {
+      $base_url = substr($base_url, 0, -1);
+    }
+  }
+
+  // Temporarily replace global $conf so variable_get() returns correct results for the domain.
+  $conf['uc_store_name'] = uc_domain_variable_get($vars['domain_id'], 'uc_store_name', NULL);
+  $conf['uc_store_owner'] = uc_domain_variable_get($vars['domain_id'], 'uc_store_owner', NULL);
+  $conf['uc_store_email'] = uc_domain_variable_get($vars['domain_id'], 'uc_store_email', NULL);
+  $conf['uc_store_phone'] = uc_domain_variable_get($vars['domain_id'], 'uc_store_phone', NULL);
+
+  // If domain_theme is installed, temporarily change the theme so the correct site logo is found.
+  if (module_exists('domain_theme') && $vars['domain_id']) {
+    $theme = domain_theme_lookup($vars['domain_id']);
+    $conf['theme_default'] = $theme['theme'];
+  }
+  else {
+    $conf['theme_default'] = uc_domain_variable_get(0, 'theme_default', 'garland');
+  }
+
+  // The global store tokens are now specific to the order domain.
+  foreach (uc_store_token_values('global') as $token => $value) {
+    $vars[str_replace('-', '_', $token)] = $value;
+  }
+
+  $vars['order_id'] = uc_domain_variable_get($vars['domain_id'], 'uc_domain_order_prefix', '') . $vars['order_id'];
+
+  // Reset globals.
+  $base_url = $original_base_url;
+  $conf = $original_conf;
+}
+
+/*******************************************************************************
+ * Hook Functions (Ubercart)
+ ******************************************************************************/
+
+/**
+ * Implementation of hook_order().
+ */
+function uc_domain_order($op, &$arg1, $arg2) {
+  global $_domain;
+  switch ($op) {
+    case 'new':
+      $arg1->domain_id = $_domain['domain_id'];
+      db_query("INSERT INTO {uc_domain_orders} (order_id, domain_id) VALUES (%d, %d)", $arg1->order_id, $arg1->domain_id);
+      break;
+
+    case 'load':
+      $domain_id = db_result(db_query("SELECT domain_id FROM {uc_domain_orders} WHERE order_id = %d", $arg1->order_id));
+      $arg1->domain_id = $domain_id ? $domain_id : 0;
+      break;
+  }
+}
+
+/**
+* Implementation of hook_order_pane().
+*/
+function uc_domain_order_pane() {
+  $panes[] = array(
+    'id' => 'payment',
+    'callback' => 'uc_order_pane_domain',
+    'title' => t('Store'),
+    'desc' => t('Displays the domain specific store name.'),
+    'class' => 'pos-left',
+    'weight' => 4,
+    'show' => array('view'),
+  );
+  return $panes;
+}
+
+/*******************************************************************************
+ * Callback Functions, Forms, and Tables
+ ******************************************************************************/
+
+/**
+* Order pane callback.
+*/
+function uc_order_pane_domain($op, $arg1) {
+  switch ($op) {
+    case 'view':
+      return uc_domain_variable_get($arg1->domain_id, 'uc_store_name', '');
+  }
+}
+
+/**
+* Helper function to get a variable from a specified domain.
+*/
+function uc_domain_variable_get($domain_id, $variable, $default = NULL) {
+  $result = db_result(db_query("SELECT settings FROM {domain_conf} WHERE domain_id = %d", $domain_id));
+  if ($result) {
+    $settings = unserialize($result);
+    if (isset($settings[$variable])) {
+      return $settings[$variable];
+    }
+  }
+
+  $result = db_result(db_query("SELECT value FROM {variable} WHERE name = '%s'", $variable));
+  if ($result) {
+    return unserialize($result);
+  }
+
+  return $default;
+}

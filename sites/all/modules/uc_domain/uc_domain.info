@@ -1,0 +1,15 @@
+; $Id: uc_domain.info,v 1.2 2009/03/31 17:50:51 longwave Exp $
+name = "Ubercart Domain Access"
+description = "Ubercart configuration and order integration for Domain Access."
+dependencies[] = domain_conf
+dependencies[] = uc_order
+package = Domain Access
+core = 6.x
+
+
+; Information added by drupal.org packaging script on 2010-09-09
+version = "6.x-1.1"
+core = "6.x"
+project = "uc_domain"
+datestamp = "1284033715"
+

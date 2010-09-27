@@ -422,7 +422,7 @@ function arcimoto_checkout_form_alter(&$form, &$form_state, $form_id) {
   }
   
   // Make the form submit to the real checkout page so there is no redirect in the middle (which causes the CC details to be lost
-  $form['#action'] = url('preorder/checkout-full');
+  $form['#action'] = url('cart/checkout');
 }
 
 function arcimoto_comment_form_alter(&$form, &$form_state, $form_id) {

@@ -1,6 +1,7 @@
 ; $Id$
 name = Arcimoto Tweaks
 description = Holds all the changes made to the Arcimoto website
+package = Arcimoto
 core = 6.x
 
 style[all][]=arcimoto.css
