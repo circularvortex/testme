@@ -1,5 +1,5 @@
 <?php
-// $Id: fb.admin.inc,v 1.12 2010/08/14 04:34:33 yogadex Exp $
+// $Id: fb.admin.inc,v 1.14 2010/09/23 15:43:35 yogadex Exp $
 /**
  * @file
  * Admin pages and forms for Drupal for Facebook.
@@ -21,13 +21,14 @@ define('FB_ADMIN_OP_LOCAL_LINKS', 'fb_admin_links');
  */
 function fb_admin_page() {
   $apps = fb_get_all_apps();
-
+  $output = ''; // Avoid PHP notice.
+  
   if (count($apps)) {
     $header = array(
       t('Label'), 
       t('About'), 
       t('Canvas'), 
-      t('Local Settings'), 
+      t('Local Operations'), 
       t('Remote Settings'),
     );
     
@@ -52,7 +53,7 @@ function fb_admin_page() {
       else {
         $row[] = t('n/a');
       }
-      // Local Settings
+      // Local Ops
       $local_links =
         fb_invoke(FB_ADMIN_OP_LOCAL_LINKS,
                   array('fb_app' => $fb_app),

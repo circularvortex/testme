@@ -1,5 +1,5 @@
 <?php
-// $Id: fb_user.admin.inc,v 1.3 2010/08/14 04:43:35 yogadex Exp $
+// $Id: fb_user.admin.inc,v 1.5 2010/09/23 22:06:09 yogadex Exp $
 /**
  * @file
  * Admin pages and forms for user settings.
@@ -45,6 +45,20 @@ function fb_user_admin_settings() {
     '#title' => t('Login form'),
     '#default_value' => variable_get(FB_USER_VAR_ALTER_LOGIN, TRUE),
   );
+
+  // Name options for automatically created user accounts.
+  $default = variable_get(FB_USER_VAR_USERNAME_STYLE, FB_USER_OPTION_USERNAME_FBU);
+  
+  $form[FB_USER_VAR_USERNAME_STYLE] = array(
+    '#type' => 'radios',
+    '#title' => t('Username Style for Automatically Created Accounts'),
+    '#description' => t('Machine-friendly names include Facebook user ids to ensure uniqueness.  Thanks to Drupal\'s theme layer, visitors to your site will usually see a proper name.<br/>Human-friendly names are like "John Smith".  Because Drupal requires unique names, you may see "John Smith_2", "John Smith_3" and so on.'),
+    '#options' => array(
+      FB_USER_OPTION_USERNAME_FBU => t('Machine-friendly, i.e. "1234565789@facebook"'),
+      FB_USER_OPTION_USERNAME_FULL => t('Human-friendly, i.e. "John Smith"'),
+    ),
+    '#default_value' => $default,
+  );
   
   return system_settings_form($form);
 }
@@ -63,7 +77,7 @@ function fb_user_admin_form_alter(&$form, &$form_state, $form_id) {
       '#title' => t('Facebook user settings'),
       '#tree' => TRUE,
       '#collapsible' => TRUE,
-      '#collapsed' => TRUE,
+      '#collapsed' => isset($fb_app->label),
     );
         
     $form['fb_app_data']['fb_user']['create_account'] = array(

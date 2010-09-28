@@ -1,5 +1,5 @@
 <?php
-// $Id: fb_register.module,v 1.14 2010/07/26 16:06:47 yogadex Exp $
+// $Id: fb_register.module,v 1.16 2010/09/23 22:03:20 yogadex Exp $
 /**
  * @file
  * This code aims to prevent duplicate accounts. 
@@ -265,7 +265,7 @@ function fb_register_form_alter(&$form, &$form_state, $form_id) {
       '#title' => t('Register Users'),
       '#tree' => TRUE,
       '#collapsible' => TRUE,
-      '#collapsed' => TRUE,
+      '#collapsed' => isset($fb_app->label),
     );
     $form['fb_app_data']['fb_register']['register_users'] = array(
       '#type' => 'checkbox',
@@ -323,8 +323,8 @@ function fb_register_user($op, &$edit, &$account, $category = NULL) {
           'account_url' => url('user/' . $account->uid, array('absolute' => TRUE)),
         )
       );
-      db_query("DELETE FROM {fb_register} WHERE uid = %d",
-               $account->uid);
+      db_query("DELETE FROM {fb_register} WHERE uid = %d OR email_hash='%s'",
+               $account->uid, $hash);
       db_query("INSERT INTO {fb_register} (uid, email_hash) VALUES (%d, '%s')",
                $account->uid, $hash);
       $apps = fb_get_all_apps();

@@ -29,25 +29,77 @@ window.fbAsyncInit = function() {
     //FB.Event.subscribe('auth.sessionChange', FB_JS.debugHandler);
 
   });
-
-  
 };
 
 FB_JS = function(){};
 
 /**
+ * Helper parses URL params.
+ *
+ * http://jquery-howto.blogspot.com/2009/09/get-url-parameters-values-with-jquery.html
+ */
+FB_JS.getUrlVars = function(href)
+{
+  var vars = [], hash;
+  var hashes = href.slice(href.indexOf('?') + 1).split('&');
+  for(var i = 0; i < hashes.length; i++)
+  {
+    hash = hashes[i].split('=');
+    vars[hash[0]] = hash[1];
+    if (hash[0] != 'fb_js_fbu')
+      vars.push(hashes[i]); // i.e. "foo=bar"
+  }
+  return vars;
+}
+
+/**
  * Reload the current page, whether on canvas page or facebook connect.
  */
 FB_JS.reload = function(destination) {
+  // Determine fbu.
+  var session = FB.getSession();
+  var fbu;
+  if (session != null)
+    fbu = session.uid;
+  else
+    fbu = 0;
+
+  // Avoid infinite reloads
+  var vars = FB_JS.getUrlVars(window.location.href);
+  if (vars.fb_js_fbu === fbu) {
+    return; // Do not reload (again)
+  }
+
+  // Determine where to send user.
   if (typeof(destination) != 'undefined' && destination) {
-    window.top.location = destination;
+    // Use destination passed in.
   }
   else if (typeof(Drupal.settings.fb.reload_url) != 'undefined') {
-    window.top.location = Drupal.settings.fb.reload_url;
+    destination = Drupal.settings.fb.reload_url;
   }
   else {
-    window.location.reload();
+    destination = window.location.href;
   }
+  
+  // Split and parse destination
+  var path;
+  if (destination.indexOf('?') == -1) {
+    vars = [];
+    path = destination;
+  }
+  else {
+    vars = FB_JS.getUrlVars(destination);
+    path = destination.substr(0, destination.indexOf('?'));
+  }
+  
+  // Add fb_js_fbu to params before reload.
+  if (fbu) {
+    vars.push('fb_js_fbu=' + fbu);
+  }
+
+  // Use window.top for iframe canvas pages.
+  destination = path + '?' + vars.join('&');
+  window.top.location = destination;
 };
 
 // Facebook pseudo-event handlers.
@@ -89,7 +141,6 @@ FB_JS.debugHandler = function(response) {
 FB_JS.sessionChangeHandler = function(context, status) {
   // Pass data to ajax event.
   var data = {
-    'apikey': FB._apiKey,
     'event_type': 'session_change'
   };
   
@@ -119,6 +170,9 @@ FB_JS.ajaxEvent = function(event_type, data) {
     // Include session, in the format faceboook's PHP sdk expects it.
     // @TODO - pass this only if fbs_APIKEY cookie is not set.
     data.session = JSON.stringify(FB.getSession());
+    // Other values to always include.
+    data.apikey = FB._apiKey;
+    data.fb_controls = Drupal.settings.fb.controls;
 
     jQuery.post(Drupal.settings.fb.ajax_event_url + '/' + event_type, data,
 		function(js_array, textStatus, XMLHttpRequest) {
@@ -153,6 +207,83 @@ FB_JS.sessionSanityCheck = function() {
   }
 };
 
+
+//// FBML popup helpers.  Does this code belong here in fb.js?
+
+/**
+ * Move new dialogs to visible part of screen.
+ **/
+FB_JS.centerPopups = function() {
+  var scrollTop = $(window).scrollTop();
+  $('.fb_dialog:not(.fb_popup_centered)').each(function() {
+    var offset = $(this).offset();
+    if (offset.left == 0) {
+      // This is some facebook cruft that cannot be centered.
+    }
+    else if (offset.top < 0) {
+      // Not yet visible, don't center.
+    }
+    else if (offset.top < scrollTop) {
+      $(this).css('top', offset.top + scrollTop + 'px');
+      $(this).addClass('fb_popup_centered'); // Don't move this dialog again.
+    }
+  });
+};
+
+FB_JS.enablePopups = function(context) {
+  // Support for easy fbml popup markup which degrades when javascript not enabled.
+  // Markup is subject to change.  Currently...
+  // <div class=fb_fbml_popup_wrap><a title="POPUP TITLE">LINK MARKUP</a><div class=fb_fbml_popup><fb:SOME FBML>...</fb:SOME FBML></div></div>
+  $('.fb_fbml_popup:not(.fb_fbml_popup-processed)', context).addClass('fb_fbml_popup-processed').prev().each(
+    function() {
+      this.fbml_popup = $(this).next().html();
+      this.fbml_popup_width = parseInt($(this).next().attr('width'));
+      this.fbml_popup_height = parseInt($(this).next().attr('height'));
+      //console.log("stored fbml_popup markup: " + this.fbml_popup); // debug
+      $(this).next().remove(); // Remove FBML so facebook does not expand it.
+    })
+    // Handle clicks on the link element.
+    .bind('click', 
+          function (e) {
+            var popup;
+            //console.log('Clicked!  Will show ' + this.fbml_popup); // debug
+	    
+	    // http://forum.developers.facebook.net/viewtopic.php?pid=243983
+	    var size = FB.UIServer.Methods["fbml.dialog"].size;
+	    if (this.fbml_popup_width) {
+	      size.width=this.fbml_popup_width;
+	    }
+	    if (this.fbml_popup_height) {
+	      size.height=this.fbml_popup_height;
+	    }
+	    FB.UIServer.Methods['fbml.dialog'].size = size;
+	    
+	    // http://forum.developers.facebook.net/viewtopic.php?id=74743
+	    var markup = this.fbml_popup;
+	    if ($(this).attr('title')) {
+	      markup = '<fb:header icon="true" decoration="add_border">' + $(this).attr('title') + '</fb:header>' + this.fbml_popup;
+	    }
+	    var dialog = {
+	      method: 'fbml.dialog', // triple-secret undocumented feature.
+	      display: 'dialog',
+	      fbml: markup,
+	      width: this.fbml_popup_width,
+	      height: this.fbml_popup_height
+	    };
+	    var popup = FB.ui(dialog, function (response) {
+	      console.log(response);
+	    });
+	    
+	    // Start a timer to keep popups centered.
+	    // @TODO - avoid starting timer more than once.
+	    window.setInterval(FB_JS.centerPopups, 500);
+	    
+            e.preventDefault();      
+          })
+    .parent().show();
+};
+
+
 Drupal.behaviors.fb = function(context) {
   // Respond to our jquery pseudo-events
   var events = jQuery(document).data('events');
@@ -167,7 +298,6 @@ Drupal.behaviors.fb = function(context) {
   else {
     $(context).each(function() {
       var elem = $(this).get(0);
-      //alert('fb_connect: ' + elem + $(elem).html()); // debug
       FB.XFBML.parse(elem);
     });
 
@@ -180,5 +310,8 @@ Drupal.behaviors.fb = function(context) {
 
   // Logout of facebook when logging out of drupal
   jQuery("a[href^='" + Drupal.settings.basePath + "logout']", context).click(FB_JS.logoutHandler);
+
+  // Support markup for dialog boxes.
+  FB_JS.enablePopups(context);
 };
 

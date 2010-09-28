@@ -1,4 +1,4 @@
-; $Id:$
+; $Id$
 name = WYSIWYG Image upload
 description = Image upload dialog for the most WYSIWYG Editors
 dependencies[] = wysiwyg
@@ -7,10 +7,9 @@ dependencies[] = imagecache
 package = Drupal Wiki
 core = "6.x"
 project = "wysiwyg_imageupload"
-
-; Information added by drupal.org packaging script on 2010-08-05
-version = "6.x-2.2"
+; Information added by drupal.org packaging script on 2010-09-07
+version = "6.x-2.3"
 core = "6.x"
 project = "wysiwyg_imageupload"
-datestamp = "1281009708"
+datestamp = "1283855209"
 

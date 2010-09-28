@@ -1,5 +1,5 @@
 <?php
-// $Id: fb_form.module,v 1.25 2010/05/14 06:26:44 yogadex Exp $
+// $Id: fb_form.module,v 1.26 2010/09/23 15:47:16 yogadex Exp $
 /**
  * @file
  * 
@@ -227,6 +227,21 @@ function fb_form_group_member_options($fbg, $fbu) {
 
 function fb_form_elements() {
   $items = array();
+
+  $items['fb_form_requestform'] = array(
+    '#input' => FALSE,
+  );
+  $items['fb_form_req_choice'] = array(
+    '#input' => FALSE,
+  );
+  $items['fb_form_multi_friend_selector'] = array(
+    '#input' => FALSE,
+  );
+
+  // Theme('fb_fbml_popup') function defined in fb.module.
+  $items['fb_fbml_popup'] = array(
+    '#input' => FALSE,
+  );
   
   $items['fb_form_request_selector'] = array(
     '#input' => TRUE,

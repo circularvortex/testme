@@ -1,5 +1,5 @@
 <?php
-// $Id: fb_devel.module,v 1.48 2010/08/19 03:10:29 yogadex Exp $
+// $Id: fb_devel.module,v 1.53 2010/09/23 22:01:11 yogadex Exp $
 /**
  * @file
  * Makes development with Drupal for Facebook much easier.  Keep this
@@ -206,11 +206,15 @@ function fb_devel_fb($op, $data, &$return) {
     //$return[] = "debugger; // added by fb_devel.module";
   }
   
-  elseif ($op == FB_OP_CANVAS_EXIT && $data['fb'] && $return) {
-    watchdog('fb_devel', 'Drupal is redirecting a canvas page, destination is %destination.', array('%destination' => $return));
-  }
   elseif ($op == FB_OP_POST_INIT) {
-    $_SESSION['fb_devel']['FB_OP_POST_INIT'] = $_SESSION['fb_devel']['FB_OP_POST_INIT'] + 1;
+    if (isset($_SESSION['fb_devel'])) {
+      // Counter helps track how long session has been around.
+      $_SESSION['fb_devel']['FB_OP_POST_INIT'] = $_SESSION['fb_devel']['FB_OP_POST_INIT'] + 1;
+    }
+    else {
+      $_SESSION['fb_devel']['FB_OP_POST_INIT'] = 1;
+    }
+    
     // Javascript to help us with sanity checks.
     drupal_add_js(array(
                     'fb_devel' => array(
@@ -223,10 +227,11 @@ function fb_devel_fb($op, $data, &$return) {
     if (fb_verbose() == 'extreme') {
       $session_id = session_id();
       $session_name = session_name();
-      $return[] = "alert('fb_devel.module extreme verbosity: original session_id is ' + Drupal.settings.fb_devel.session_name + ':' + Drupal.settings.fb_devel.session_id + ', session_id during FB_OP_AJAX_EVENT is $session_name:$session_id');";
+      $return[] = "console.log('fb_devel.module extreme verbosity: original session_id is ' + Drupal.settings.fb_devel.session_name + ':' + Drupal.settings.fb_devel.session_id + ', session_id during FB_OP_AJAX_EVENT is $session_name:$session_id');";
       $fbu = fb_facebook_user($data['fb']);
-      $return[] = "alert('fb_facebook_user() during FB_OP_AJAX_EVENT is $fbu, data[event_data][fbu] is {$data[event_data][fbu]}');";
-      $return[] = "alert('_COOKIE[fbu_{$fb_app->apikey}] is " . $_COOKIE['fbu_' . $fb_app->apikey] . "');";
+      $return[] = "console.log('fb_facebook_user() during FB_OP_AJAX_EVENT is $fbu, data[event_data][fbu] is {$data[event_data][fbu]}');";
+      $return[] = "console.log('_COOKIE[fbu_{$fb_app->apikey}] is " . $_COOKIE['fbu_' . $fb_app->apikey] . "');";
+      $return[] = "FB_JS.reload();";
       $_SESSION['fb_devel']['FB_AJAX_EVENT'] = 'XXX';
     }
   }
@@ -234,7 +239,8 @@ function fb_devel_fb($op, $data, &$return) {
 
 /**
  * Provides a page with useful debug info.
- * 
+ *
+ * @TODO - clean this up and rely less on drupal_set_message() and dpm().
  */
 function fb_devel_page() {
   global $_fb, $_fb_app;
@@ -256,7 +262,6 @@ function fb_devel_page() {
     drupal_set_message(t("base_url: " . $GLOBALS['base_url']));
     drupal_set_message(t("base_path: " . $GLOBALS['base_path']));
     drupal_set_message(t("url() returns: " . url()));
-    drupal_set_message(t("session_key is " . $_fb->api_client->session_key));
   }
 
   if ($fbu = fb_get_fbu($user)) {
@@ -268,8 +273,9 @@ function fb_devel_page() {
   dpm(fb_get_fbu($user), 'Facebook user via fb_get_fbu');
   //dpm($user, "Local user " . theme('username', $user));
   
-  if ($GLOBALS['fb_connect_apikey'])
+  if (isset($GLOBALS['fb_connect_apikey'])) {
     drupal_set_message(t("fb_connect_apikey = " . $GLOBALS['fb_connect_apikey']));
+  }
   
   dpm($_COOKIE, 'cookie');
   dpm($_REQUEST, "Request");
@@ -478,7 +484,7 @@ function fb_devel_info() {
       $info['Page Status'] = t('Connected via Facebook Connect');
     }
     elseif (!fb_settings(FB_SETTINGS_TYPE)) {
-      $info['Page Status'] = t('Global fb instance is set.  Probably  facebook connect is enabled but user is not logged into facebook.');
+      $info['Page Status'] = t('Facebook SDK iniatilized. User is not logged into facebook or has not authorized application.');
     }
     else {
       $info['Page Status'] = t('Global fb instance is set, but page type unknown (%type).',
@@ -518,7 +524,6 @@ function fb_devel_info() {
   $info['session_name'] = session_name();
   $info['fbsettings(FB_SETTINGS_COOKIE_DOMAIN)'] = fb_settings(FB_SETTINGS_COOKIE_DOMAIN);
 
-  $info['signed_request'] = $_fb->getSignedRequest();
   $info['request'] = $_REQUEST;
   $info['user'] = $GLOBALS['user'];
   $info['fb_app'] = $_fb_app;
@@ -527,6 +532,7 @@ function fb_devel_info() {
 
   
   if ($_fb) {
+    $info['signed_request'] = $_fb->getSignedRequest();
     try {
       // app properties
       $token = fb_access_token();
@@ -604,7 +610,7 @@ function fb_devel_user($op, &$edit, &$account, $category = NULL) {
             //$info = fb_users_getInfo(array($fbu), $fb, TRUE);
             $account->content['fb_devel'][$fb_app->label]['info'] = array(
               '#type' => 'markup',
-              '#value' => dprint_r($info[0], 1),
+              '#value' => dprint_r($info, 1),
             );
           }
           catch (Exception $e) {
