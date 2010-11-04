@@ -1,5 +1,0 @@
-core = "6.x"
-dependencies[] = "context"
-description = "Collection of useful theme overrides and alters to Drupal defaults."
-name = "Seed"
-package = "Other"
