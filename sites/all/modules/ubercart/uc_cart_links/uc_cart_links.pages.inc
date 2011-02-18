@@ -103,6 +103,13 @@ function uc_cart_links_process($arg1) {
         }
         break;
 
+	// Empty the shopping cart.
+	   case 'e':
+	   if (variable_get('uc_cart_links_empty', TRUE)) {
+	   uc_cart_empty(uc_cart_get_id());
+	   }
+	break;
+
       // Display a pre-configured message.
       case 'm':
       case 'M':

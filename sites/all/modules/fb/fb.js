@@ -1,52 +1,63 @@
 
 // This function called by facebook's javascript when it is loaded.
+// http://developers.facebook.com/docs/reference/javascript/
 window.fbAsyncInit = function() {
-  //debugger; // debug
-  // @TODO - make these settings completely customizable.
-  var settings = {xfbml: true};
-  if (Drupal.settings.fb.apikey) {
-    settings.apiKey = Drupal.settings.fb.apikey;
-    settings.status = true;
-    settings.cookie = true;
+
+  FB.init(Drupal.settings.fb.fb_init_settings);
+
+  FB.XFBML.parse();
+
+  // Async function to complete init, only if session state is unknown.
+  // (Avoid doing this when third-party cookies disabled.)
+  if (!Drupal.settings.fb.fb_init_settings.session) {
+    FB.getLoginStatus(function(response) {
+      var status = {'session' : response.session, 'response': response};
+      jQuery.event.trigger('fb_init', status);  // Trigger event for third-party modules.
+
+      FB_JS.sessionChange(response);
+
+      FB_JS.eventSubscribe();
+    });
   }
-  
-  FB.init(settings);
-
-  // Async function to complete init.
-  FB.getLoginStatus(function(response) {
-    var status = {'session' : response.session, 'response': response};
-    jQuery.event.trigger('fb_init', status);  // Trigger event for third-party modules.
-
-    FB_JS.sessionChange(response);
-
-    // Use FB.Event to detect Connect login/logout.
-    FB.Event.subscribe('auth.sessionChange', FB_JS.sessionChange);
-    
-    // Other events that may be of interest...
-    //FB.Event.subscribe('auth.login', FB_JS.debugHandler);
-    //FB.Event.subscribe('auth.logout', FB_JS.debugHandler);
-    //FB.Event.subscribe('auth.statusChange', FB_JS.debugHandler);
-    //FB.Event.subscribe('auth.sessionChange', FB_JS.debugHandler);
-
-  });
+  else {
+    jQuery.event.trigger('fb_init', {'session' : Drupal.settings.fb.fb_init_settings.session});  // Trigger event for third-party modules.
+    FB_JS.eventSubscribe();
+    FB_JS.sessionSanityCheck();
+  }
 };
 
 FB_JS = function(){};
+
+/**
+ * Tell facebook to notify us of events we may need to act on.
+ */
+FB_JS.eventSubscribe = function() {
+  // Use FB.Event to detect Connect login/logout.
+  FB.Event.subscribe('auth.sessionChange', FB_JS.sessionChange);
+
+  // Q: what the heck is "edge.create"? A: the like button was clicked.
+  FB.Event.subscribe('edge.create', FB_JS.edgeCreate);
+
+  // Other events that may be of interest...
+  //FB.Event.subscribe('auth.login', FB_JS.debugHandler);
+  //FB.Event.subscribe('auth.logout', FB_JS.debugHandler);
+  //FB.Event.subscribe('auth.statusChange', FB_JS.debugHandler);
+  //FB.Event.subscribe('auth.sessionChange', FB_JS.debugHandler);
+}
 
 /**
  * Helper parses URL params.
  *
  * http://jquery-howto.blogspot.com/2009/09/get-url-parameters-values-with-jquery.html
  */
-FB_JS.getUrlVars = function(href)
-{
+FB_JS.getUrlVars = function(href) {
   var vars = [], hash;
   var hashes = href.slice(href.indexOf('?') + 1).split('&');
   for(var i = 0; i < hashes.length; i++)
   {
     hash = hashes[i].split('=');
     vars[hash[0]] = hash[1];
-    if (hash[0] != 'fb_js_fbu')
+    if (hash[0] != '_fb_js_fbu')
       vars.push(hashes[i]); // i.e. "foo=bar"
   }
   return vars;
@@ -65,8 +76,9 @@ FB_JS.reload = function(destination) {
     fbu = 0;
 
   // Avoid infinite reloads
+  ///@TODO - does not work on iframe because facebook does not pass url args to canvas frame when cookies not accepted.  http://forum.developers.facebook.net/viewtopic.php?id=77236
   var vars = FB_JS.getUrlVars(window.location.href);
-  if (vars.fb_js_fbu === fbu) {
+  if (vars._fb_js_fbu == fbu) {
     return; // Do not reload (again)
   }
 
@@ -80,7 +92,7 @@ FB_JS.reload = function(destination) {
   else {
     destination = window.location.href;
   }
-  
+
   // Split and parse destination
   var path;
   if (destination.indexOf('?') == -1) {
@@ -91,21 +103,29 @@ FB_JS.reload = function(destination) {
     vars = FB_JS.getUrlVars(destination);
     path = destination.substr(0, destination.indexOf('?'));
   }
-  
-  // Add fb_js_fbu to params before reload.
-  if (fbu) {
-    vars.push('fb_js_fbu=' + fbu);
-  }
+
+  // Add _fb_js_fbu to params before reload.
+  vars.push('_fb_js_fbu=' + fbu);
 
   // Use window.top for iframe canvas pages.
   destination = path + '?' + vars.join('&');
+
+  if(Drupal.settings.fb.reload_url_fragment) {
+    destination = destination + "#" + Drupal.settings.fb.reload_url_fragment;
+  }
+
   window.top.location = destination;
+  //alert(destination);
 };
 
 // Facebook pseudo-event handlers.
 FB_JS.sessionChange = function(response) {
+  if (response.status == 'unknown') {
+    // @TODO can we test if third-party cookies are disabled?
+  }
+
   var status = {'changed': false, 'fbu': null, 'session': response.session, 'response' : response};
-  
+
   if (response.session) {
     status.fbu = response.session.uid;
     if (Drupal.settings.fb.fbu != status.fbu) {
@@ -116,12 +136,12 @@ FB_JS.sessionChange = function(response) {
   else if (Drupal.settings.fb.fbu) {
     // A user has logged out.
     status.changed = true;
-    
+
     // Sometimes Facebook's invalid cookies are left around.  Let's try to clean up their crap.
-    // @TODO - delete cookie only if it exists.
+    // Can get left behind when third-party cookies disabled.
     FB_JS.deleteCookie('fbs_' + Drupal.settings.fb.apikey, '/', '');
   }
-  
+
   if (status.changed) {
     // fbu has changed since server built the page.
     jQuery.event.trigger('fb_session_change', status);
@@ -129,7 +149,12 @@ FB_JS.sessionChange = function(response) {
     // Remember the fbu.
     Drupal.settings.fb.fbu = status.fbu;
   }
-  
+
+};
+
+FB_JS.edgeCreate = function(href, widget) {
+  var status = {'href': href};
+  FB_JS.ajaxEvent('edge.create', status);
 };
 
 // Helper function for developers.
@@ -143,7 +168,7 @@ FB_JS.sessionChangeHandler = function(context, status) {
   var data = {
     'event_type': 'session_change'
   };
-  
+
   if (status.session) {
     data.fbu = status.session.uid;
     // Suppress facebook-controlled session.
@@ -153,43 +178,49 @@ FB_JS.sessionChangeHandler = function(context, status) {
   // No need to call window.location.reload().  It will be called from ajaxEvent, if needed.
 };
 
-// click handler
-FB_JS.logoutHandler = function(event) {
-  if (typeof(FB) != 'undefined') {
-    FB.logout(function () {
-      //debugger;
-    });
-  }
-};
 
 // Helper to pass events via AJAX.
 // A list of javascript functions to be evaluated is returned.
 FB_JS.ajaxEvent = function(event_type, data) {
   if (Drupal.settings.fb.ajax_event_url) {
 
-    // Include session, in the format faceboook's PHP sdk expects it.
-    // @TODO - pass this only if fbs_APIKEY cookie is not set.
-    data.session = JSON.stringify(FB.getSession());
+    // Session data helpful in ajax callbacks.  See fb_settings.inc.
+    data.fb_js_session = JSON.stringify(FB.getSession());
+    if (typeof(Drupal.settings.fb_page_type) != 'undefined') {
+      data.fb_js_page_type = Drupal.settings.fb_page_type;
+    }
+
     // Other values to always include.
     data.apikey = FB._apiKey;
-    data.fb_controls = Drupal.settings.fb.controls;
+    if (Drupal.settings.fb.controls) {
+      data.fb_controls = Drupal.settings.fb.controls;
+    }
 
     jQuery.post(Drupal.settings.fb.ajax_event_url + '/' + event_type, data,
-		function(js_array, textStatus, XMLHttpRequest) {
-		  //debugger; // debug
-		  for (var i = 0; i < js_array.length; i++) {
-		    eval(js_array[i]);
-		  }
-		}, 'json');
+                function(js_array, textStatus, XMLHttpRequest) {
+                  //debugger; // debug
+                  if (js_array.length > 0) {
+                    for (var i = 0; i < js_array.length; i++) {
+                      eval(js_array[i]);
+                    }
+                  }
+                  else {
+                    if (event_type == 'session_change') {
+                      // No instructions from ajax, reload entire page.
+                      FB_JS.reload();
+                    }
+                  }
+                }, 'json');
   }
 };
 
 // Delete a cookie.
+// ??? Still needed?  Facebook's JS SDK may take care of this now.
 FB_JS.deleteCookie = function( name, path, domain ) {
   document.cookie = name + "=" +
-  ( ( path ) ? ";path=" + path : "") +
-  ( ( domain ) ? ";domain=" + domain : "" ) +
-  ";expires=Thu, 01-Jan-1970 00:00:01 GMT";
+    ( ( path ) ? ";path=" + path : "") +
+    ( ( domain ) ? ";domain=" + domain : "" ) +
+    ";expires=Thu, 01-Jan-1970 00:00:01 GMT";
 };
 
 // Test the FB settings to see if we are still truly connected to facebook.
@@ -198,91 +229,14 @@ FB_JS.sessionSanityCheck = function() {
     Drupal.settings.fb.checkSemaphore=true;
     FB.api('/me', function(response) {
       if (response.id != Drupal.settings.fb.fbu) {
-	// We are no longer connected.
-	var status = {'changed': true, 'fbu': null, 'check_failed': true};
-	jQuery.event.trigger('fb_session_change', status);
+        // We are no longer connected.
+        var status = {'changed': true, 'fbu': null, 'check_failed': true};
+        jQuery.event.trigger('fb_session_change', status);
       }
       Drupal.settings.fb.checkSemaphore=null;
     });
   }
 };
-
-
-//// FBML popup helpers.  Does this code belong here in fb.js?
-
-/**
- * Move new dialogs to visible part of screen.
- **/
-FB_JS.centerPopups = function() {
-  var scrollTop = $(window).scrollTop();
-  $('.fb_dialog:not(.fb_popup_centered)').each(function() {
-    var offset = $(this).offset();
-    if (offset.left == 0) {
-      // This is some facebook cruft that cannot be centered.
-    }
-    else if (offset.top < 0) {
-      // Not yet visible, don't center.
-    }
-    else if (offset.top < scrollTop) {
-      $(this).css('top', offset.top + scrollTop + 'px');
-      $(this).addClass('fb_popup_centered'); // Don't move this dialog again.
-    }
-  });
-};
-
-FB_JS.enablePopups = function(context) {
-  // Support for easy fbml popup markup which degrades when javascript not enabled.
-  // Markup is subject to change.  Currently...
-  // <div class=fb_fbml_popup_wrap><a title="POPUP TITLE">LINK MARKUP</a><div class=fb_fbml_popup><fb:SOME FBML>...</fb:SOME FBML></div></div>
-  $('.fb_fbml_popup:not(.fb_fbml_popup-processed)', context).addClass('fb_fbml_popup-processed').prev().each(
-    function() {
-      this.fbml_popup = $(this).next().html();
-      this.fbml_popup_width = parseInt($(this).next().attr('width'));
-      this.fbml_popup_height = parseInt($(this).next().attr('height'));
-      //console.log("stored fbml_popup markup: " + this.fbml_popup); // debug
-      $(this).next().remove(); // Remove FBML so facebook does not expand it.
-    })
-    // Handle clicks on the link element.
-    .bind('click', 
-          function (e) {
-            var popup;
-            //console.log('Clicked!  Will show ' + this.fbml_popup); // debug
-	    
-	    // http://forum.developers.facebook.net/viewtopic.php?pid=243983
-	    var size = FB.UIServer.Methods["fbml.dialog"].size;
-	    if (this.fbml_popup_width) {
-	      size.width=this.fbml_popup_width;
-	    }
-	    if (this.fbml_popup_height) {
-	      size.height=this.fbml_popup_height;
-	    }
-	    FB.UIServer.Methods['fbml.dialog'].size = size;
-	    
-	    // http://forum.developers.facebook.net/viewtopic.php?id=74743
-	    var markup = this.fbml_popup;
-	    if ($(this).attr('title')) {
-	      markup = '<fb:header icon="true" decoration="add_border">' + $(this).attr('title') + '</fb:header>' + this.fbml_popup;
-	    }
-	    var dialog = {
-	      method: 'fbml.dialog', // triple-secret undocumented feature.
-	      display: 'dialog',
-	      fbml: markup,
-	      width: this.fbml_popup_width,
-	      height: this.fbml_popup_height
-	    };
-	    var popup = FB.ui(dialog, function (response) {
-	      console.log(response);
-	    });
-	    
-	    // Start a timer to keep popups centered.
-	    // @TODO - avoid starting timer more than once.
-	    window.setInterval(FB_JS.centerPopups, 500);
-	    
-            e.preventDefault();      
-          })
-    .parent().show();
-};
-
 
 Drupal.behaviors.fb = function(context) {
   // Respond to our jquery pseudo-events
@@ -290,28 +244,19 @@ Drupal.behaviors.fb = function(context) {
   if (!events || !events.fb_session_change) {
     jQuery(document).bind('fb_session_change', FB_JS.sessionChangeHandler);
   }
-  
-  if (typeof(FB) == 'undefined') {
-    // Include facebook's javascript.  @TODO - determine locale dynamically.
-    jQuery.getScript(Drupal.settings.fb.js_sdk_url);
-  }
-  else {
+
+  // Once upon a time, we initialized facebook's JS SDK here.  But now that is done in fb_footer().
+
+  if (typeof(FB) != 'undefined') {
+    // Render any XFBML markup that may have been added by AJAX.
     $(context).each(function() {
       var elem = $(this).get(0);
       FB.XFBML.parse(elem);
     });
-
-    FB_JS.sessionSanityCheck();
   }
 
   // Markup with class .fb_show should be visible if javascript is enabled.  .fb_hide should be hidden.
   jQuery('.fb_hide', context).hide();
   jQuery('.fb_show', context).show();
 
-  // Logout of facebook when logging out of drupal
-  jQuery("a[href^='" + Drupal.settings.basePath + "logout']", context).click(FB_JS.logoutHandler);
-
-  // Support markup for dialog boxes.
-  FB_JS.enablePopups(context);
 };
-

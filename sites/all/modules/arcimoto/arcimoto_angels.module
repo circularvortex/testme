@@ -1,6 +1,6 @@
 <?php
 
-function arcimoto_angels_menu_alter(&$items) {
+function arcimoto_angels_menu_alter($items) {
  
 	$items['cart/checkout/complete'] = array(
 	    'title' => 'Order complete',

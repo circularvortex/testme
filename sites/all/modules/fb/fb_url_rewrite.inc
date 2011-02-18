@@ -1,5 +1,5 @@
 <?php
-// $Id: fb_url_rewrite.inc,v 1.4 2010/09/16 17:13:19 yogadex Exp $
+// $Id: fb_url_rewrite.inc,v 1.7 2010/11/02 18:49:00 yogadex Exp $
 /**
  * @file
  * Performs custom url rewriting for Drupal for Facebook.
@@ -18,7 +18,7 @@
  * fb_canvas.module, because custom_url_rewrite_inbound() must be defined
  * *before* drupal_init_path(), which is called during DRUPAL_BOOTSTRAP_PATH,
  * before modules are loaded.
- * 
+ *
  * If your application supports canvas pages and/or profile tabs, include this
  * file in your settings.php.
  * I.e. the end of your settings.php might look like:
@@ -26,7 +26,7 @@
  * include 'sites/all/modules/fb/fb_url_rewrite.inc'; // For canvas pages support.
  * include 'sites/all/modules/fb/fb_settings.inc'; // Always include this.
  */
-   
+
 /**
  * Returns a list of the values which we prepend to paths when rewriting urls.
  */
@@ -35,7 +35,7 @@ function _fb_settings_url_rewrite_prefixes() {
   if (!isset($prefixes)) {
     $prefixes = array(
       FB_SETTINGS_CB,
-      FB_SETTINGS_CB_TYPE, 
+      FB_SETTINGS_CB_TYPE,
       FB_SETTINGS_CB_SESSION,
     );
   }
@@ -82,26 +82,37 @@ if (!function_exists('custom_url_rewrite_inbound')) {
  */
 if (!function_exists('custom_url_rewrite_outbound')) {
   function custom_url_rewrite_outbound(&$path, &$options, $original_path) {
-    if (function_exists('fb_canvas_url_outbound_alter'))
-      fb_canvas_url_outbound_alter($path, $options, $original_path);
-    fb_url_outbound_alter($path, $options, $original_path);
+    if (!isset($options['fb_url_alter']) || $options['fb_url_alter']) {
+      if (function_exists('fb_canvas_url_outbound_alter')) {
+        fb_canvas_url_outbound_alter($path, $options, $original_path);
+      }
+      fb_url_outbound_alter($path, $options, $original_path);
+    }
   }
 }
 
 /**
- * Implementation of hook_url_outbound_alter().
+ * Implements hook_url_outbound_alter().
+ *
+ * @param $options
+ *   If $options['fb_url_alter'] == FALSE, this function will not alter the
+ *   URL.  If used with $options['absolute'] == TRUE, this will generate a
+ *   link from a canvas page out to the server's URL.
  */
 function fb_url_outbound_alter(&$path, &$options, $original_path) {
-  //dpm(func_get_args(), 'fb_settings_url_rewrite_outbound'); // debug
-  $pre = '';
-  
-  // Prefix each known value to the URL
-  foreach (_fb_settings_url_rewrite_prefixes() as $prefix) {
-    if ($value = fb_settings($prefix))
-      $pre .= $prefix . '/'. $value . '/';
+  if (!isset($options['fb_url_alter']) || $options['fb_url_alter']) {
+    $pre = '';
+
+    // Prefix each known value to the URL
+    foreach (_fb_settings_url_rewrite_prefixes() as $prefix) {
+      if (!isset($options[$prefix]) || $options[$prefix] !== FALSE) {
+        if ($value = fb_settings($prefix))
+          $pre .= $prefix . '/'. $value . '/';
+      }
+    }
+    $path  = $pre . $path;
   }
-  $path  = $pre . $path;
-  
+
   return $path;
 }
 
@@ -109,7 +120,7 @@ function fb_url_outbound_alter(&$path, &$options, $original_path) {
  * Implementation of hook_url_inbound_alter().
  *
  * Rewrite URLs for facebook canvas pages, and connect callbacks.
- * 
+ *
  */
 function fb_url_inbound_alter(&$result, $path, $path_language) {
   //dpm(func_get_args(), 'fb_settings_url_rewrite_outbound'); // debug
@@ -120,20 +131,21 @@ function fb_url_inbound_alter(&$result, $path, $path_language) {
     while (count($args) && in_array($args[0], _fb_settings_url_rewrite_prefixes())) {
       $key = array_shift($args);
       $value = array_shift($args);
-      fb_settings($key, $value); // Store for use later.
+      if (fb_settings($key) === NULL) // defer to previously set values
+        fb_settings($key, $value); // Store for use later.
     }
     if (fb_settings(FB_SETTINGS_CB)) {
       if (count($args)) {
         $path = implode('/', $args); // remaining args
         $alias = drupal_lookup_path('source', $path, $path_language); //can't use drupal_get_normal_path, it calls custom_url_rewrite_inbound
-        if ($alias) 
+        if ($alias)
           $path = $alias;
       }
       else {
         // frontpage
         $path = variable_get('site_frontpage', 'node');
         $alias = drupal_lookup_path('source', $path, $path_language);
-        if ($alias) 
+        if ($alias)
           $path = $alias;
         $_REQUEST['destination'] = $path; //required workaround for compatibility with Global Redirect module, best practice?
       }
@@ -141,7 +153,7 @@ function fb_url_inbound_alter(&$result, $path, $path_language) {
   }
   else { //resolve aliases for non-fb-callbacks
     $alias = drupal_lookup_path('source', $path, $path_language);
-    if ($alias) 
+    if ($alias)
       $path = $alias;
   }
 

@@ -1,9 +1,9 @@
 <?php
-// $Id: fb_canvas.admin.inc,v 1.11 2010/09/16 17:13:19 yogadex Exp $
+// $Id: fb_canvas.admin.inc,v 1.13 2010/11/02 18:49:00 yogadex Exp $
 /**
  * @file
  * Admin pages and forms for canvas apps.
- * 
+ *
  */
 
 
@@ -13,7 +13,7 @@
 function fb_canvas_fb_admin($op, $data, &$return) {
   $fb = isset($data['fb']) ? $data['fb'] : NULL;
   $fb_app = isset($data['fb_app']) ? $data['fb_app'] : NULL;
-  
+
   if ($op == FB_ADMIN_OP_SET_PROPERTIES) {
     // Compute properties which we can set automatically.
     if (function_exists('fb_url_inbound_alter')) {
@@ -64,8 +64,8 @@ function fb_canvas_admin_form_alter(&$form, &$form_state, $form_id) {
   // Add our settings to the fb_app edit form.
   if (isset($form['fb_app_data']) && is_array($form['fb_app_data'])) {
     $fb_app = $form['#fb_app'];
-    $fb_canvas_data = _fb_canvas_get_config($fb_app);    
-    
+    $fb_canvas_data = _fb_canvas_get_config($fb_app);
+
     $form['fb_app_data']['fb_canvas'] = array(
       '#type' => 'fieldset',
       '#collapsible' => TRUE,
@@ -80,7 +80,9 @@ function fb_canvas_admin_form_alter(&$form, &$form_state, $form_id) {
     ksort($themes);
     $theme_options[0] = t('System default');
     foreach ($themes as $theme) {
-      $theme_options[$theme->name] = $theme->name;
+      if ($theme->status) { // Only show enabled themes.
+        $theme_options[$theme->name] = $theme->name;
+      }
     }
     $form['fb_app_data']['fb_canvas']['theme_iframe'] = array(
       '#type' => 'select',
@@ -91,7 +93,7 @@ function fb_canvas_admin_form_alter(&$form, &$form_state, $form_id) {
       '#default_value' => $fb_canvas_data['theme_iframe'],
     );
 
-    
+
     if (FALSE) { // @TODO - no require_login in new libs???
     $form['fb_app_data']['fb_canvas']['require_login'] = array(
       '#type' => 'radios',
@@ -105,7 +107,7 @@ function fb_canvas_admin_form_alter(&$form, &$form_state, $form_id) {
       '#required' => TRUE,
     );
     }
-    
+
     $form['fb_app_data']['fb_canvas']['front_anonymous'] = array(
       '#type' => 'textfield',
       '#title' => t('Front page when user has not authorized the application'),

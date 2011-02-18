@@ -1,9 +1,9 @@
 <?php
-// $Id: fb_devel.install,v 1.6 2010/09/12 02:16:47 yogadex Exp $
+// $Id: fb_devel.install,v 1.10 2011/01/04 12:52:53 yogadex Exp $
 /**
  * @file
  * Install file for fb_devel.module.
- * 
+ *
  */
 
 
@@ -31,19 +31,21 @@ function fb_devel_requirements($phase) {
 
 
     // Confirm no accounts without authmap.  The problem caused by old bug, should only occur on sites that have been upgraded.
-    $result = db_query('SELECT count(u.uid) FROm {users} u LEFT JOIN {authmap} a ON u.uid=a.uid WHERE u.name LIKE "%@facebook%" AND a.uid IS NULL');
-    $count = db_result($result);
-    if ($count) {
-      $status = array(
-        'title' => $t('Accounts Named NNN@facebook Without authmap'),
-        'description' => $t('Drupal for Facebook may have failed to create authmap entry for these accounts.  Please report to the Drupal for Facebook issue queue, we are working on a fix.'),
-        'value' => $count,
-        'severity' => REQUIREMENT_WARNING,
-      );
-      $items[] = $status;
+    if (module_exists('fb_user')) {
+      $result = db_query('SELECT count(u.uid) FROM {users} u LEFT JOIN {fb_user} a ON u.uid=a.uid WHERE u.name LIKE "%@facebook%" AND a.uid IS NULL');
+      $count = db_result($result);
+      if ($count) {
+        $status = array(
+          'title' => $t('Accounts named NNN@facebook without fb_user map'),
+          'description' => $t('Drupal for Facebook may have failed to create a map entry for these accounts.  Please report to the Drupal for Facebook issue queue, we are working on a fix.'),
+          'value' => $count,
+          'severity' => REQUIREMENT_WARNING,
+        );
+        $items[] = $status;
+      }
     }
   }
-  
+
   // Test if json extensions are loaded.
   if (defined('SERVICES_JSON_SLICE')) { // defined in facebook's json wrapper, which is not compatible with PHP's JSON extensions.
     $items[] = array(
@@ -52,11 +54,11 @@ function fb_devel_requirements($phase) {
       'description' => $t('JSON extension must be present for Drupal for Facebook modules.  You can wait (forever) for facebook to <a href="!url">fix their bug</a>, or install the JSON extension. ', array('!url' => 'http://bugs.developers.facebook.com/show_bug.cgi?id=4351')),
     );
   }
-  
-  
+
+
   // clean url sanity check
   if (!variable_get('clean_url', FALSE) && module_exists('fb_canvas') && $phase == 'runtime') {
-    $message = 
+    $message =
     $items[] = array(
       'title' => $t('Clean URLs'),
       'severity' => REQUIREMENT_ERROR,
@@ -64,7 +66,7 @@ function fb_devel_requirements($phase) {
                           array('!url' => url('admin/settings/clean-urls'))),
     );
   }
-  
+
   if (!count($items) && $phase == 'runtime') {
     $items[] = array(
       'title' => $t('Drupal for Facebook Devel'),
@@ -75,3 +77,9 @@ function fb_devel_requirements($phase) {
   return $items;
 }
 
+/**
+ * Implements hook_uninstall().
+ */
+function fb_devel_uninstall() {
+  db_query("DELETE FROM {blocks} WHERE module = 'fb_devel'");
+}

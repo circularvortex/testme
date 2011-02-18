@@ -16,9 +16,12 @@ $0.147 -- CA
 define('ARCIMOTO_KWH_PER_MILE_PULSE',   .2);
 
 
+drupal_add_js(drupal_get_path('module', 'jquery_ui') .'/jquery.ui/ui/jquery-ui-1.7.3.custom.js');
 
 function arcimoto_init() {
   drupal_add_css(drupal_get_path('module', 'arcimoto') .'/arcimoto.css');
+  
+  jquery_ui_add('ui.progressbar');
 }
 
 
@@ -253,7 +256,7 @@ function _money_format($number) {
   return number_format($number, 2);
 }
 
-function arcimoto_calculator_form_validate($form, &$form_state) {
+function arcimoto_calculator_form_validate($form, $form_state) {
   if (!is_numeric($form_state['values']['dollars_per_gallon'])) {
     form_set_error('', t('You must select a name for this group of settings.'));
   }
@@ -338,7 +341,7 @@ function arcimoto_form_alter(&$form, &$form_state, $form_id) {
 
 }
 
-function arcimoto_user_register_form_alter(&$form, &$form_state, $form_id) {
+function arcimoto_user_register_form_alter($form, $form_state, $form_id) {
   if($form_state['submitted'] == FALSE) {
     // Move the newletter subscription button into the main fieldset
     $form['account']['simplenews-3'] = $form['simplenews']['simplenews-3'];
@@ -366,7 +369,7 @@ function arcimoto_user_register_form_alter(&$form, &$form_state, $form_id) {
   
 }
 
-function arcimoto_user_login_form_alter(&$form, &$form_state, $form_id) {
+function arcimoto_user_login_form_alter($form, $form_state, $form_id) {
   if($form_state['submitted'] == FALSE) {
     // Alter the size of the form fields
     $form['name']['#size'] = 35;
@@ -378,7 +381,7 @@ function arcimoto_user_login_form_alter(&$form, &$form_state, $form_id) {
   }
 }
 
-function arcimoto_checkout_form_alter(&$form, &$form_state, $form_id) {
+function arcimoto_checkout_form_alter($form, $form_state, $form_id) {
   if($form_state['submitted'] == FALSE) {
     // Only show delivery to Oregon and Washington
     $states_we_deliver_to = array(
@@ -406,7 +409,7 @@ function arcimoto_checkout_form_alter(&$form, &$form_state, $form_id) {
     // Change "cart contents" to "order summary"
     $form['panes']['cart']['#title'] = 'Order Summary';
     
-    // Add a "change quanitity link"
+    // Add a "change quantity link"
     $form['panes']['cart']['cart_change_quantity'] = array(
           '#value' => '<p class="right">'.l('Order more than one', 'preorder/quantity').'</p>',
           '#weight' => '10'
@@ -425,14 +428,14 @@ function arcimoto_checkout_form_alter(&$form, &$form_state, $form_id) {
   $form['#action'] = url('cart/checkout');
 }
 
-function arcimoto_comment_form_alter(&$form, &$form_state, $form_id) {
+function arcimoto_comment_form_alter($form, $form_state, $form_id) {
   // Make the input form shoter:
   $form['comment_filter']['comment']['#rows'] = 5;
 }
 
 
 
-function arcimoto_order($op, &$arg1, $arg2) {
+function arcimoto_order($op, $arg1, $arg2) {
   switch ($op) {
     case 'load':
         // If the user didn't enter in billing info, copy it from the delivery info
@@ -446,7 +449,7 @@ function arcimoto_order($op, &$arg1, $arg2) {
   }
 }
 
-function copy_delivery_to_billing(&$order) {
+function copy_delivery_to_billing($order) {
     $order->billing_first_name = $order->delivery_first_name;
     $order->billing_last_name = $order->delivery_last_name;
     $order->billing_company = $order->delivery_company;
@@ -465,11 +468,11 @@ function copy_delivery_to_billing(&$order) {
 
 
 
-function arcimoto_preprocess(&$vars) {
+function arcimoto_preprocess($vars) {
 
 }
 
-function arcimoto_preprocess_page(&$vars) {
+function arcimoto_preprocess_page($vars) {
   /*dpr('foooooo');
   dpr(debug_backtrace());
   echo '<pre>';
@@ -501,7 +504,7 @@ function is_redirecting_to_checkout() {
   return $is_redirecting_to_checkout;
 }
 
-function arcimoto_preprocess_node(&$vars) {
+function arcimoto_preprocess_node($vars) {
   
   // Add ability to theme specific nodes
   $vars['template_files'][] = 'node-' . $vars['nid'];
@@ -531,6 +534,20 @@ function arcimoto_preprocess_node(&$vars) {
 
 
 /** Allow aggregator items to stick around forever **/
-function arcimoto_form_aggregator_admin_settings_alter(&$form, &$form_state) {
+function arcimoto_form_aggregator_admin_settings_alter($form, $form_state) {
     $form['aggregator_clear']['#options'][157784630]  = "Nearly Never aka 5 years";                  
 }
+
+
+
+
+/** 
+*   Add new Ubercart invoice templates, overriding uc_order_uc_invoice_templates()
+**/
+
+function arcimoto_uc_invoice_templates() {
+  return array('admin', 'customer', 'wings');
+}
+
+
+
