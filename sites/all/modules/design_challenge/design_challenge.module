@@ -1,0 +1,3 @@
+<?php
+
+include_once('design_challenge.features.inc');

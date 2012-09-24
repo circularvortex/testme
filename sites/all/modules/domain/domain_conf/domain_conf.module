@@ -1,5 +1,5 @@
 <?php
-// $Id: domain_conf.module,v 1.53.2.11 2010/09/22 20:53:39 agentken Exp $
+// $Id: domain_conf.module,v 1.53.2.15 2010/12/15 22:06:18 agentken Exp $
 
 /**
  * @defgroup domain_conf Domain Conf: configuration extension
@@ -14,7 +14,7 @@
  */
 
 /**
- * Implementats hook_domain_bootstrap_full().
+ * Implements hook_domain_bootstrap_full().
  */
 function domain_conf_domain_bootstrap_full($domain) {
   static $check;
@@ -195,7 +195,7 @@ function domain_conf_domainbatch() {
       '#maxlength' => 255,
       '#description' => t('Set the email address for this domain.'),
     ),
-    '#permission' => 'administer site configuraion',
+    '#permission' => 'administer site configuration',
     '#domain_action' => 'domain_conf',
     '#system_default' => variable_get('site_mail', ''),
     '#variable' => 'site_mail',
@@ -214,7 +214,7 @@ function domain_conf_domainbatch() {
       '#maxlength' => 255,
       '#description' => t('The slogan of this domain. Some themes display a slogan when available.'),
     ),
-    '#permission' => 'administer site configuraion',
+    '#permission' => 'administer site configuration',
     '#domain_action' => 'domain_conf',
     '#system_default' => variable_get('site_slogan', ''),
     '#variable' => 'site_slogan',
@@ -269,7 +269,7 @@ function domain_conf_domainbatch() {
       '#maxlength' => 255,
       '#description' => t('The home page displays content from this relative URL. If unsure, specify "node".'),
     ),
-    '#permission' => 'administer site configuraion',
+    '#permission' => 'administer site configuration',
     '#domain_action' => 'domain_conf',
     '#system_default' => variable_get('site_frontpage', 'node'),
     '#variable' => 'site_frontpage',
@@ -288,7 +288,7 @@ function domain_conf_domainbatch() {
       '#maxlength' => 255,
       '#description' => t('The name used to indicate anonymous users for this domain.'),
     ),
-    '#permission' => 'administer site configuraion',
+    '#permission' => 'administer site configuration',
     '#domain_action' => 'domain_conf',
     '#system_default' => variable_get('anonymous', 'Anonymous'),
     '#variable' => 'anonymous',
@@ -312,7 +312,7 @@ function domain_conf_domainbatch() {
       '#options' => $options,
       '#description' => t('Select the administrative theme for this domain.'),
     ),
-    '#permission' => 'administer themes',
+    '#permission' => 'administer site configuration',
     '#domain_action' => 'domain_conf',
     '#system_default' => variable_get('admin_theme', 0),
     '#variable' => 'admin_theme',
@@ -331,7 +331,7 @@ function domain_conf_domainbatch() {
       '#options' => $zones,
       '#description' => t('Select the default site time zone.'),
     ),
-    '#permission' => 'administer site configuraion',
+    '#permission' => 'administer site configuration',
     '#domain_action' => 'domain_conf',
     '#system_default' => variable_get('date_default_timezone', 0),
     '#variable' => 'date_default_timezone',
@@ -349,7 +349,7 @@ function domain_conf_domainbatch() {
       '#options' => array(CACHE_DISABLED => t('Disabled'), CACHE_NORMAL => t('Normal (recommended for production sites, no side effects)')),
       '#description' => t('Enabling the page cache will offer a significant performance boost. Drupal can store and send compressed cached pages requested by <em>anonymous</em> users. By caching a web page, Drupal does not have to construct the page each time it is viewed.') .'<em> '. t('Aggressive mode caching is not supported when using Domain Access.') .'</em>',
     ),
-    '#permission' => 'administer site configuraion',    
+    '#permission' => 'administer site configuration',    
     '#domain_action' => 'domain_conf',
     '#system_default' => variable_get('cache', CACHE_DISABLED),
     '#variable' => 'cache',
@@ -369,7 +369,7 @@ function domain_conf_domainbatch() {
       '#options' => $period,
       '#description' => t('On high-traffic sites, it may be necessary to enforce a minimum cache lifetime. The minimum cache lifetime is the minimum amount of time that will elapse before the cache is emptied and recreated, and is applied to both page and block caches. A larger minimum cache lifetime offers better performance, but users will not see new content for a longer period of time.')
     ),
-    '#permission' => 'administer site configuraion',
+    '#permission' => 'administer site configuration',
     '#domain_action' => 'domain_conf',
     '#system_default' => variable_get('cache_lifetime', 0),
     '#variable' => 'cache_lifetime',
@@ -387,7 +387,7 @@ function domain_conf_domainbatch() {
       '#options' => array(t('Disabled'), t('Enabled')),
       '#description' => t("By default, Drupal compresses the pages it caches in order to save bandwidth and improve download times. This option should be disabled when using a webserver that performs compression."),
     ),
-    '#permission' => 'administer site configuraion',
+    '#permission' => 'administer site configuration',
     '#domain_action' => 'domain_conf',
     '#system_default' => variable_get('page_compression', TRUE),
     '#variable' => 'page_compression',
@@ -423,7 +423,7 @@ function domain_conf_domainbatch() {
       '#rows' => 5,
       '#description' => t('Message to show visitors when this domain is in off-line mode.'),
     ),
-    '#permission' => 'administer site configuraion',
+    '#permission' => 'administer site configuration',
     '#domain_action' => 'domain_conf',
     '#system_default' => t('@site is currently under maintenance. We should be back shortly. Thank you for your patience.', array('@site' => variable_get('site_name', 'Drupal'))),
     '#variable' => 'site_offline_message',
@@ -763,9 +763,10 @@ function domain_conf_variable_delete($domain_id, $variable) {
  */
 function domain_conf_variable_save($domain_id, $variable, $value = NULL) {
   // Get the current settings for this domain, if any.
-  $settings = domain_unserialize(db_result(db_query("SELECT settings FROM {domain_conf} WHERE domain_id = %d", $domain_id)));
+  $serialized = db_result(db_query("SELECT settings FROM {domain_conf} WHERE domain_id = %d", $domain_id));
   // Settings found, update them.
-  if (!empty($settings)) {
+  if ($serialized) {
+    $settings = domain_unserialize($serialized);
     $settings[$variable] = $value;
     db_query("UPDATE {domain_conf} SET settings = %b WHERE domain_id = %d", serialize($settings), $domain_id);
   }

@@ -1,5 +1,5 @@
 <?php
-// $Id: views_slideshow_singleframe.views_slideshow.inc,v 1.1.2.1.2.17 2010/04/16 21:57:40 redndahead Exp $
+// $Id: views_slideshow_singleframe.views_slideshow.inc,v 1.1.2.1.2.29 2010/07/13 04:02:08 redndahead Exp $
 
 /**
  * @file
@@ -20,15 +20,23 @@ function views_slideshow_singleframe_views_slideshow_option_definition() {
       'sort' => array('default' => 1),
       'effect' => array('default' => 'fade'),
       'speed' => array('default' => 700), //normal
+      'start_paused' => array('default', 0),
       'delay' => array('default' => 0),
       'fixed_height' => array('default' => 1),
       'random' => array('default' => 0),
       'pause' => array('default' => 1),
       'pause_on_click' => array('default' => 0),
+      'pause_when_hidden' => array('default' => 0),
+      'pause_when_hidden_type' => array('default' => 'full'),
+      'amount_allowed_visible' => array('default' => ''),
+      'remember_slide' => array('default' => 0),
+      'remember_slide_days' => array('default' => 1),
       'controls' => array('default' => 0),
+      'items_per_slide' => array('default' => 1),
       'pager' => array('default' => 0),
       'pager_type' => array('default' => 0),
-      'page_hover' => array('default' => 2),
+      'pager_hover' => array('default' => 2),
+      'pager_click_to_page' => array('default' => 0),
       'image_count' => array('default' => 0),
       'nowrap' => array('default' => 0),
       'sync' => array('default' => 1),
@@ -46,30 +54,11 @@ function views_slideshow_singleframe_views_slideshow_option_definition() {
 }
 
 function views_slideshow_singleframe_views_slideshow_options_form(&$form, &$form_state, &$view) {
-  $form['views_slideshow_singleframe']['js'] = array(
-    '#value' => "<script type='text/javascript'>
-                  viewsSlideshowSingleframePagerToggle();
-                  $('#edit-style-options-views-slideshow-singleframe-pager').change(function() {
-                    viewsSlideshowSingleframePagerToggle();
-                  });
-                  
-                  function viewsSlideshowSingleframePagerToggle() {
-                    if ($('#edit-style-options-views-slideshow-singleframe-pager').val() > 0) {
-                      $('#edit-style-options-views-slideshow-singleframe-pager-type-wrapper').show('normal');
-                      $('#edit-style-options-views-slideshow-singleframe-pager-hover-wrapper').show('normal');
-                    }
-                    else {
-                      $('#edit-style-options-views-slideshow-singleframe-pager-type-wrapper').hide('normal');
-                      $('#edit-style-options-views-slideshow-singleframe-pager-hover-wrapper').hide('normal');
-                    }
-                  }
-                </script>",
-  );
   $form['views_slideshow_singleframe']['timeout'] = array(
     '#type' => 'textfield',
     '#title' => t('Timer delay'),
     '#default_value' => $view->options['views_slideshow_singleframe']['timeout'],
-    '#description' => t('Amount of time in milliseconds between transitions.')
+    '#description' => t('Amount of time in milliseconds between transitions. Set the value to 0 to not rotate the slideshow automatically.')
   );
   $form['views_slideshow_singleframe']['delay'] = array(
     '#type' => 'textfield',
@@ -82,6 +71,12 @@ function views_slideshow_singleframe_views_slideshow_options_form(&$form, &$form
     '#title' => t('Speed'),
     '#default_value' => $view->options['views_slideshow_singleframe']['speed'],
     '#description' => t('Time in milliseconds that each transition lasts. Numeric only!'),  
+  );
+  $form['views_slideshow_singleframe']['start_paused'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Start Slideshow Paused'),
+    '#default_value' => $view->options['views_slideshow_singleframe']['start_paused'],
+    '#description' => t('Start the slideshow in the paused state.'),  
   );
   $form['views_slideshow_singleframe']['fixed_height'] = array(
     '#type' => 'select',
@@ -111,6 +106,58 @@ function views_slideshow_singleframe_views_slideshow_options_form(&$form, &$form
     '#default_value' => $view->options['views_slideshow_singleframe']['pause_on_click'],
     '#description' => t('Pause when the slide is clicked.'),
   );
+  $form['views_slideshow_singleframe']['pause_when_hidden'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Pause When the Slideshow is Not Visible'),
+    '#default_value' => $view->options['views_slideshow_singleframe']['pause_when_hidden'],
+    '#description' => t('When the slideshow is scrolled out of view or when a window is resized that hides the slideshow, this will pause the slideshow.'),
+  );
+  $form['views_slideshow_singleframe']['pause_when_hidden_type'] = array(
+    '#type' => 'select',
+    '#title' => t('How to Calculate Amount of Slide that Needs to be Shown'),
+    '#options' => array(
+      'full' => t('Entire slide'),
+      'vertical' => t('Set amount of vertical'),
+      'horizontal' => t('Set amount of horizontal'),
+      'area' => t('Set total area of the slide'),
+    ),
+    '#default_value' => $view->options['views_slideshow_singleframe']['pause_when_hidden_type'],
+    '#description' => t('Choose how to calculate how much of the slide has to be shown. Entire Slide: All the slide has to be shown. Vertical: Set amount of height that has to be shown. Horizontal: Set amount of width that has to be shown. Area: Set total area that has to be shown.'),
+    '#process' => array('views_process_dependency'),
+    '#dependency' => array('edit-style-options-views-slideshow-singleframe-pause-when-hidden' => array(1)),
+  );
+  $form['views_slideshow_singleframe']['amount_allowed_visible'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Amount of Slide Needed to be Shown'),
+    '#default_value' => $view->options['views_slideshow_singleframe']['amount_allowed_visible'],
+    '#description' => t("The amount of the slide that needs to be shown to have it rotate. You can set the value in percentage (ex: 50%) or in pixels (ex: 250). The slidehsow will not rotate until it's height/width/total area, depending on the calculation method you have chosen above, is less than the value you have entered in this field."),
+    '#size' => 4,
+    '#process' => array('views_process_dependency'),
+    '#dependency_count' => 2,
+    '#dependency' => array(
+      'edit-style-options-views-slideshow-singleframe-pause-when-hidden' => array(1),
+      'edit-style-options-views-slideshow-singleframe-pause-when-hidden-type' => array(
+        'vertical',
+        'horizontal',
+        'area',
+      ),
+    ),
+  );
+  $form['views_slideshow_singleframe']['remember_slide'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Start On Last Slide Viewed'),
+    '#default_value' => $view->options['views_slideshow_singleframe']['remember_slide'],
+    '#description' => t('When the user leaves a page with a slideshow and comes back start them on the last slide viewed.'),
+  );
+  $form['views_slideshow_singleframe']['remember_slide_days'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Length of Time to Remember Last Slide'),
+    '#default_value' => $view->options['views_slideshow_singleframe']['remember_slide_days'],
+    '#description' => t('The number of days to have the site remember the last slide. Default is 1'),
+    '#size' => 4,
+    '#process' => array('views_process_dependency'),
+    '#dependency' => array('edit-style-options-views-slideshow-singleframe-remember-slide' => array(1)),
+  );
   $form['views_slideshow_singleframe']['controls'] = array(
     '#type' => 'select',
     '#title' => t('Controls'),
@@ -131,6 +178,8 @@ function views_slideshow_singleframe_views_slideshow_options_form(&$form, &$form
     '#options' => array('Numbered' => t('Numbered'),'Thumbnails' => t('Thumbnails')),
     '#default_value' => $view->options['views_slideshow_singleframe']['pager_type'],
     '#description' => t('What the pager should look like.  Thumbnails grabs the first image in each slideshow item.'),
+    '#process' => array('views_process_dependency'),
+    '#dependency' => array('edit-style-options-views-slideshow-singleframe-pager' => array(1, 2)),
   );
   $form['views_slideshow_singleframe']['pager_hover'] = array(
     '#type' => 'select',
@@ -138,6 +187,16 @@ function views_slideshow_singleframe_views_slideshow_options_form(&$form, &$form
     '#options' => array(1 => t('Yes'),2 => t('No')),
     '#default_value' => $view->options['views_slideshow_singleframe']['pager_hover'],
     '#description' => t('Should the slide be activated and paused when hovering over a pager item.'),
+    '#process' => array('views_process_dependency'),
+    '#dependency' => array('edit-style-options-views-slideshow-singleframe-pager' => array(1, 2)),
+  );
+  $form['views_slideshow_singleframe']['pager_click_to_page'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Make Pager Linked to Slide Link'),
+    '#default_value' => $view->options['views_slideshow_singleframe']['pager_click_to_page'],
+    '#description' => t('Should the pager use the main frame link so when it is clicked it goes to the same url that the main frame goes to when clicked.'),
+    '#process' => array('views_process_dependency'),
+    '#dependency' => array('edit-style-options-views-slideshow-singleframe-pager' => array(1, 2)),
   );
   $form['views_slideshow_singleframe']['image_count'] = array(
     '#type' => 'select',
@@ -145,6 +204,13 @@ function views_slideshow_singleframe_views_slideshow_options_form(&$form, &$form
     '#options' => array(0 => t('None'),1 => t('Top'),2 => t('Bottom')),
     '#default_value' => $view->options['views_slideshow_singleframe']['image_count'],
     '#description' => t('Determine if the Image Counter (1 of 4) should be displayed and if so whether they should appear before or after the slideshow.'),
+  );
+  $form['views_slideshow_singleframe']['items_per_slide'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Items per slide'),
+    '#default_value' => $view->options['views_slideshow_singleframe']['items_per_slide'],
+    '#description' => t('The number of items per slide'),
+    '#size' => 4,
   );
   $options = array(
     'none' => 'none',
@@ -201,7 +267,7 @@ function views_slideshow_singleframe_views_slideshow_options_form(&$form, &$form
     '#type' => 'textarea',
     '#title' => t('Advanced Options'),
     '#default_value' => $view->options['views_slideshow_singleframe']['advanced'],
-    '#description' => t('Add other jQuery cycle options one per line.  Ex. height: 350  !url', array('!url' => l('Click here for the additional options to add.', 'http://malsup.com/jquery/cycle/options.html'))),
+    '#description' => t('Add other jQuery cycle options one per line.  Ex. height: 350  !url', array('!url' => l(t('Click here for the additional options to add.'), 'http://malsup.com/jquery/cycle/options.html'))),
   );
   $form['views_slideshow_singleframe']['ie'] = array(
     '#type' => 'fieldset',
@@ -227,9 +293,12 @@ function views_slideshow_singleframe_views_slideshow_options_form(&$form, &$form
 
 function views_slideshow_singleframe_views_slideshow_options_form_validate(&$form, &$form_state, &$view) {
   if (!is_numeric($form_state['values']['style_options']['views_slideshow_singleframe']['speed'])) {
-    form_error($form['views_slideshow_singleframe']['speed'], t('!setting must be numeric!',array('Speed')));
+    form_error($form['views_slideshow_singleframe']['speed'], t('Speed must be numeric!'));
   }
   if (!is_numeric($form_state['values']['style_options']['views_slideshow_singleframe']['timeout'])) {
-    form_error($form['views_slideshow_singleframe']['speed'], t('!setting must be numeric!',array('timeout')));
+    form_error($form['views_slideshow_singleframe']['timeout'], t('Timeout must be numeric!'));
+  }
+  if (!is_numeric($form_state['values']['style_options']['views_slideshow_singleframe']['remember_slide_days'])) {
+    form_error($form['views_slideshow_singleframe']['remember_slide_days'], t('Slide days must be numeric!'));
   }
 }

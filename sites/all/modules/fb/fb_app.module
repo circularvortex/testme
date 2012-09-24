@@ -149,14 +149,23 @@ function fb_app_event_cb($label, $event_type) {
   if ($fb_app)
     $fb = fb_api_init($fb_app);
 
-  fb_invoke(FB_APP_OP_EVENT, array(
-      'fb_app' => $fb_app,
-      'fb' => $fb,
-      'event_type' => $event_type,
-    ), NULL);
+  $data = array(
+    'fb_app' => $fb_app,
+    'fb' => $fb,
+    'event_type' => $event_type,
+  );
+  if (isset($_SERVER['CONTENT_TYPE']) && $_SERVER['CONTENT_TYPE'] == 'application/json') {
+    $json = file_get_contents('php://input');
+    $data['event_data'] = json_decode($json);
+  }
+  else {
+    $data['event_data'] = $_REQUEST;
+  }
+
+  fb_invoke(FB_APP_OP_EVENT, $data, NULL);
 
   // This page is called by facebook, not a user's browser.  User's should never see this.
-  print('Thanks Facebook, for your fancy API!');
+  //print('Thanks Facebook, for your fancy API!');
 
   // It's facebook calling us, not the user.  And fb_sig params make it look
   // like a canvas page, but it could be connect.  So bad idea to save session.

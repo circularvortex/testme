@@ -1,5 +1,4 @@
 <?php
-// $Id: fb_friend.install,v 1.3 2011/01/04 12:52:53 yogadex Exp $
 /**
  * @file
  * Installs database tables and settings required by fb_friend module.

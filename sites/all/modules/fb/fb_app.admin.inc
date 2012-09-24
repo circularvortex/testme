@@ -1,5 +1,4 @@
 <?php
-// $Id: fb_app.admin.inc,v 1.25 2011/01/06 22:14:46 yogadex Exp $
 /**
  * @file
  * Admin pages and forms for facebook applications.
@@ -90,6 +89,11 @@ function fb_app_edit_form($form_state, $fb_app = NULL) {
       '#value' => t($helptext),
       '#weight' => -10,
     );
+    $form['helptext2'] = array(
+      '#markup' => t('It is recommended to administer drupal in one browser (this one) and log into facebook in another browser, so no cookies are shared.  So for example if using Chrome, follow the create app link above in an incognito window.'),
+      '#prefix' => '<p><em>', '#suffix' => '</em></p>',
+    );
+
   }
 
   $form['label'] = array(

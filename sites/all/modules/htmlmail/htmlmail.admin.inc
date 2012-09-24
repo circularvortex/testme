@@ -1,5 +1,4 @@
 <?php
-// $Id: htmlmail.admin.inc,v 1.1.2.13 2010/02/26 06:15:52 chrisherberte Exp $
 
 /**
  * @file
@@ -40,7 +39,33 @@ function htmlmail_admin_settings() {
     '#description' => t('Make use of the <strong><a href="http://drupal.org/project/rel_to_abs">Relative Path to Absolute URLs</a></strong> module to fix broken image links when using a WYSIWYG, untick if you want control over this.<br /><em>You need to have the module installed.</em>'),
     '#disabled' => !module_exists('rel_to_abs'),
   );
+  $form['htmlmail_debug'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Debug'),
+    '#default_value' => variable_get('htmlmail_debug', '0'),
+    '#description' => t('Add mail key to bottom of email. Useful for theme template suggestion or exclusion settings.'),
+  );
+  $form['htmlmail_plain'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Plain Text Settings'),
+    '#collapsible' => TRUE,
+  );
+  $form['htmlmail_plain']['htmlmail_plain_type'] = array(
+    '#type' => 'radios',
+    '#title' => t('Process with HTML Mail'),
+    '#options' => array(
+      t('Exclude e-mail sent from the listed modules.'),
+      t('Incude e-mail send from the listed modules.'),
+    ),
+    '#default_value' => variable_get('htmlmail_plain_type', 0),
+  );
 
+  $form['htmlmail_plain']['htmlmail_plain_settings'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Modules or mail keys'),
+    '#default_value' => variable_get('htmlmail_plain_settings', ''),
+    '#description' => t('Enter module name. eg: "user" (without quotes) for all user module emails. <em>Note there is a bug in Drupal 6 core which may make this unreliable.</em>'),
+  );
   return system_settings_form($form);
 }
 
@@ -126,7 +151,7 @@ function htmlmail_test_form_submit($form, &$form_state) {
     'subject' => $form_state['values']['subject'],
     'body' => $form_state['values']['body'],
   );
-  if (drupal_mail('htmlmail', 'htmlmail_test', $form_state['values']['to'], language_default(), $params)) {
+  if (drupal_mail('htmlmail', 'test', $form_state['values']['to'], language_default(), $params)) {
     drupal_set_message(t('HTML Mail test message sent.'));
   }
 }

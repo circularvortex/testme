@@ -1,5 +1,4 @@
 <?php
-// $Id: fb_canvas.admin.inc,v 1.13 2010/11/02 18:49:00 yogadex Exp $
 /**
  * @file
  * Admin pages and forms for canvas apps.

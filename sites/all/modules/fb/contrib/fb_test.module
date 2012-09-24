@@ -43,7 +43,7 @@ function fb_test_create_form($form_state, $fb_app) {
 
   // Which permissions?
   $perms = array();
-  drupal_alter('fb_required_perms', $perms);
+  drupal_alter('fb_required_perms', $perms); // @TODO pass fb_app to this function.
   if (count($perms)) {
     $default_perms = implode(',', $perms);
   }
@@ -107,7 +107,7 @@ function fb_test_accounts_form($form_state, $fb_app) {
 
       $options[$test_account['id']] = $markup;
     }
-    if (count($options)) {
+    if (!empty($options)) {
       $form['checkboxes'] = array(
         '#type' => 'checkboxes',
         '#options' => $options,
@@ -173,6 +173,18 @@ function fb_test_accounts_form_submit($form, &$form_state) {
                 fb_log_exception($e, $message);
               }
             }
+          }
+        }
+      }
+    }
+    elseif ($values['operation'] == 'delete') {
+      foreach ($values['checkboxes'] as $fbu => $selected) {
+        if ($selected) {
+          $result = $fb->api($fbu, 'DELETE', array('access_token' => fb_get_token($fb)));
+          if ($result) {
+            drupal_set_message(t('Deleted test account %fbu', array(
+                                   '%fbu' => $fbu,
+                                 )));
           }
         }
       }

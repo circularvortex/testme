@@ -1,0 +1,266 @@
+<?php
+// $Id: uc_better_cart_links.module,v 1.1 2010/10/09 13:50:39 ktleow Exp $
+
+/**
+ * @file
+ *   Allows your Ubercart site to generate encrypted cart links.
+ */
+
+/**
+ * Implementation of hook_menu().
+ */
+function uc_better_cart_links_menu() {
+  $items = array();
+
+  // A form to create cart links per node, renders as tab.
+  $items['admin/store/better-cart-links'] = array(
+    'access arguments' => array('administer cart links'),
+    'description' => 'Configure and craft special product add to cart links.',
+    'page arguments' => array('uc_better_cart_links_create'),
+    'page callback' => 'drupal_get_form',
+    'title' => 'Better cart links',
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 10,
+  );
+  // The nodereference autocomplete callback.
+  $items['admin/store/cart-links/nodereference/autocomplete'] = array(
+    'access arguments' => array('administer cart links'), 
+    'file' => 'uc_better_cart_links.pages.inc',
+    'page callback' => 'uc_better_cart_links_nodereference_autocomplete',
+    'title' => 'Nodereference autocomplete',
+    'type' => MENU_CALLBACK,
+  );
+
+  // Create a new menu callback to handle encrypted cart links.
+  $items['cart/add/s/%'] = array(
+    'access arguments' => array('access content'),
+    'file' => 'uc_better_cart_links.pages.inc',
+    'page arguments' => array(3),
+    'page callback' => 'uc_better_cart_links_process',
+    'title' => 'Add to cart',
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+}
+
+/*
+ * Generate Ubercart add to cart links with its attributes, and query.
+ * 
+ * @param $data
+ *   Array containing default link text, empty setting (TRUE or FALSE) and items to be added into shopping cart.
+ * @param $options
+ *   (Optional) See param $options on function l() http://api.drupal.org/api/function/l
+ * @param $link
+ *   (Optional) Determine whether to return the unformatted / raw link or not.
+ * 
+ * @return
+ *   HTML string containing a link to the given path.
+ */
+function uc_better_cart_links_links($data, $options = array(), $link = FALSE) {
+  $cart_link = '';
+  $path = url('<front>', array('absolute' => TRUE)); // The absolute base path.
+
+  if (!empty($data['items'])) {
+    $text = $data['text'] ? trim($data['text']) : 'Add to cart';
+
+    if ($data['empty']) {
+      $cart_link .= 'e-';
+    }
+
+    foreach ($data['items'] as $item) {
+      $item_link = 'p' . $item['nid'];
+      $item_link .= '_q' . ($item['qty'] ? $item['qty'] : 1);
+
+      if (!empty($item['attributes'])) {
+        foreach ($item['attributes'] as $attribute => $option) {
+          $item_link .= '_a' . $attribute . 'o' . $option;
+        }
+      }
+
+      $item_links[] = $item_link;
+    }
+
+    $cart_link .= implode('-', $item_links);
+
+    $unformatted_output = $path . 'cart/add/s/' . uc_better_cart_links_encrypt($cart_link) . (!empty($options['query']) ? '?' . urldecode(drupal_query_string_encode($options['query'])) : '');
+
+    if ($link) {
+      $output = $unformatted_output;
+    }
+    else {
+      $output = l(!empty($data['text']) ? trim($data['text']) : $unformatted_output, 'cart/add/s/' . uc_better_cart_links_encrypt($cart_link), $options);
+    }
+
+    return $output;
+  }
+}
+
+/**
+ * Encrypt URL to be used as links.
+ * @see http://stackoverflow.com/questions/1289061/best-way-to-use-php-to-encrypt-and-decrypt
+ * 
+ * Requires PHP Mcrypt library installed.
+ *
+ * @param $link
+ *   The relative link or path. Eg: "e-p1_q1" from UC Cart Links will empty cart, add product ID 1 with 1 quantity.
+ *
+ * @return
+ *   The encrypted URL to be displayed.
+ */
+function uc_better_cart_links_encrypt($link) {
+  $salt = drupal_get_private_key();
+
+  $hash = mcrypt_encrypt(MCRYPT_RIJNDAEL_256, md5($salt), $link, MCRYPT_MODE_CBC, md5(md5($salt)));
+  $hash = base64_encode($hash);
+
+  // Replace the following symbols from generated hash (if any) with its HTML number to avoid problems when encoding / decoding.
+  $hash = preg_replace('/\//', '_47_', $hash); // Slash (/).
+  $hash = preg_replace('/\#/', '_35_', $hash); // Number sign (#).
+  $hash = preg_replace('/\&/', '_38_', $hash); // Ampersand (&).
+  $hash = preg_replace('/\+/', '_43_', $hash); // Plus sign (+).
+
+  return $hash;
+}
+
+/**
+ * Decrypt received URL.
+ * 
+ * @param $link
+ *   The encrypted link generated from _encrypt_url() function.
+ * 
+ * @return
+ *   The decrypted link to be passed to UC Cart Links to process.
+ */
+function uc_better_cart_links_decrypt($link) {
+  $salt = drupal_get_private_key();
+
+  $link = preg_replace('/_47_/', '/', $link); // Slash (/).
+  $link = preg_replace('/_35_/', '#', $link); // Number sign (#).
+  $link = preg_replace('/_38_/', '&', $link); // Ampersand (&).
+  $link = preg_replace('/_43_/', '+', $link); // Plus sign (+).
+
+  $link = mcrypt_decrypt(MCRYPT_RIJNDAEL_256, md5($salt), base64_decode($link), MCRYPT_MODE_CBC, md5(md5($salt)));
+  $link = rtrim($link, "\0");
+
+  return $link;
+}
+
+/**
+ * Create tokenized cart links form.
+ *
+ * @see
+ *   uc_better_cart_links_create_validate()
+ *   uc_better_cart_links_create_submit()
+ */
+function uc_better_cart_links_create(&$form_state) {
+  drupal_set_title(t('Generate tokenized cart links'));
+
+  $form = array();
+
+  $form['description'] = array(
+    '#value' => t('<p>Use this form to generate custom tokenized cart links.</p>'),
+  );
+
+  $form['form']['nid'] = array(
+    '#autocomplete_path' => 'admin/store/cart-links/nodereference/autocomplete',
+    '#description' => t('Enter the product node ID or title to search.'),
+    '#required' => TRUE,
+    '#title' => t('Product ID'),
+    '#type' => 'textfield',
+  );
+
+  $form['form']['empty'] = array(
+    '#description' => t('Remove any existing items in cart before adding new ones.'),
+    '#title' => t('Empty cart'),
+    '#type' => 'checkbox',
+  );
+
+  $form['form']['quantity'] = array(
+    '#default_value' => 1,
+    '#description' => t('Specify the quantity to add to cart. Minimum quantity is 1.'),
+    '#required' => TRUE,
+    '#size' => 15,
+    '#title' => t('Quantity'),
+    '#type' => 'textfield',
+  );
+
+  $form['form']['attributes'] = array(
+    '#description' => t('Specify attributes/options using a#o#, replacing # with the ID of the attribute and option.'),
+    '#title' => t('Attributes and options'),
+    '#type' => 'textfield',
+  );
+
+  $form['form']['redirect'] = array(
+    '#description' => t('The internal URL that will be redirected to after adding items to cart. Leave blank to redirect to homepage.'),
+    '#title' => t('Redirect URL'),
+    '#type' => 'textfield',
+  );
+
+  $form['form']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Submit'),
+  );
+
+  return $form;
+}
+
+/**
+ * Validate the form.
+ */
+function uc_better_cart_links_create_validate($form, &$form_state) {
+  // Get all NIDs of product node types that are published.
+  $result = db_query("SELECT n.nid FROM {node} n WHERE n.type = '%s' AND n.status = 1", array('%s' => implode(',', uc_product_types())));
+  $nids = array();
+  while ($node = db_fetch_object($result)) {
+    $nids[] = $node->nid;
+  }
+
+  // Check if the NID is valid, a product node, and is published.
+  if (!in_array($form['form']['#post']['nid'], $nids)) {
+    form_set_error('nid', t('Product ID is not valid.'));
+  }
+
+  // Validate quantity, must be numeric, minimum quantity of 1.
+  if (!preg_match('/^[0-9]{1,}$/', $form['form']['#post']['quantity'])) {
+    form_set_error('quantity', t('Quantity must be an integer.'));
+  }
+  if ($form['form']['#post']['quantity'] < 1) {
+    form_set_error('quantity', t('Quantity must be at least 1.'));
+  }
+
+  // Check attributes and options to make sure its in correct format 'a1o1'.
+  if (!preg_match('/^a[0-9]+o[0-9]+$/i', $form['form']['#post']['attributes']) && !empty($form['form']['#post']['attributes'])) {
+    form_set_error('attributes', t('Attributes must be in the form of a#o#, where # is the ID of attribute and option.'));
+  }
+
+  // Validate the URL.
+  // TODO - Validate with internal normal path and aliased path.
+}
+
+/**
+ * Handle post-validation form submission.
+ */
+function uc_better_cart_links_create_submit($form, &$form_state) {
+  if (!empty($form['form']['#post']['redirect'])) {
+    $query = array('query' => array('destination' => $form['form']['#post']['redirect']));
+  }
+
+  $items = array(
+    array('data' => uc_better_cart_links_links(
+      array(
+        'empty' => ($form['form']['#post']['empty']) ? TRUE : FALSE,
+        'items' => array(
+          array(
+            'nid' => $form['form']['#post']['nid'],
+            'qty' => $form['form']['#post']['quantity'],
+          ),
+        ),
+      ),
+      !empty($query) ? $query : array(),
+      FALSE
+    )),
+  );
+
+  drupal_set_message(theme_item_list($items), 'status');
+}

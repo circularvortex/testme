@@ -1,5 +1,4 @@
 <?php
-// $Id: htmlmail.module,v 1.9.2.28 2010/02/26 06:15:52 chrisherberte Exp $
 
 /**
  * @file
@@ -60,31 +59,56 @@ function htmlmail_menu() {
  */
 function htmlmail_mail_alter(&$message) {
 
-  $message['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed;';
-  
-  // message body may be an array
-  $message['body'] = is_array($message['body']) ? implode("\n\n", $message['body']) : $message['body'];
+  // Match plain exclusions settings
+  if ($plain_settings = variable_get('htmlmail_plain_settings', '')) {
+    $items = preg_split('/(\r\n?|\n)/', $plain_settings);
 
-  // The paragraph an break stuff
-  if (variable_get('htmlmail_autop', '1')) {
-    $message['body'] = _filter_autop($message['body']);
+    $plain_match = FALSE;
+    foreach($items as $item) {
+      if (!strncmp($message['id'], $item, strlen($item))) {
+        $plain_match = TRUE;
+        break;
+      }
+    }
+
+    // reverse $plain_match if type is include
+    if (variable_get('htmlmail_plain_type', 0)) {
+      $plain_match = !$plain_match;
+    }
   }
 
-  if (variable_get('htmlmail_urlfilter', '1')) {
-  // defaults to 72 as there is no filter 0 -- make filters a configuration option?
-    $message['body'] = _filter_url($message['body'], 0);
-  }
+  if (!$plain_match) { // All good, make mail html
+    $message['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed;';
 
-  // Theme from template htmlmail.tpl.php
-  $message['body'] = theme('htmlmail', $message['body']);
+    // message body may be an array
+    $message['body'] = is_array($message['body']) ? implode("\n\n", $message['body']) : $message['body'];
 
-  if (variable_get('htmlmail_emogrifier', '0')) {
-    $message['body'] = _htmlmail_emogrify($message);
-  }
+    // The paragraph an break stuff
+    if (variable_get('htmlmail_autop', '1')) {
+      $message['body'] = _filter_autop($message['body']);
+    }
 
-  // Convert relative urls to absolute if rel_to_abs is enabled.
-  if (module_exists('rel_to_abs') && variable_get('htmlmail_rel_to_abs', 1)) {
-    $message['body'] = rel_to_abs_filter('prepare', 0, -1, $message['body']);
+    if (variable_get('htmlmail_urlfilter', '1')) {
+    // defaults to 72 as there is no filter 0 -- make filters a configuration option?
+      $message['body'] = _filter_url($message['body'], 0);
+    }
+
+    // Theme from template htmlmail.tpl.php
+    $message['body'] = theme('htmlmail', $message['body'], $message['id']);
+
+    if (variable_get('htmlmail_emogrifier', '0')) {
+      $message['body'] = _htmlmail_emogrify($message);
+    }
+
+    // Convert relative urls to absolute if rel_to_abs is enabled.
+    if (module_exists('rel_to_abs') && variable_get('htmlmail_rel_to_abs', 1)) {
+      $message['body'] = rel_to_abs_filter('prepare', 0, -1, $message['body']);
+    }
+
+    // Send the message key in email for theme template suggestions
+    if (variable_get('htmlmail_debug', '0')) {
+      $message['body'] .= '<p> Message Key ID: '. $message['id'] .'</p>';
+    }
   }
 }
 
@@ -94,9 +118,8 @@ function htmlmail_mail_alter(&$message) {
 function htmlmail_theme() {
   $items['htmlmail'] = array(
     'template' => 'htmlmail',
-    'arguments' => array('body' => NULL),
+    'arguments' => array('body' => NULL, 'key' => NULL),
   );
-  
   if (module_exists('token')) {
     $items['htmlmail_token_help'] = array(
       'arguments' => array('prefix' => '[', 'suffix' => ']'),
@@ -107,12 +130,10 @@ function htmlmail_theme() {
 
 /**
  *  Token support
- */ 
+ */
 function theme_htmlmail_token_help($prefix = '[', $suffix = ']') {
   token_include();
-
   $full_list = array_merge(token_get_list('user'), token_get_list('profile'));
-
   $headers = array(t('Token'), t('Replacement value'));
   $rows = array();
   foreach ($full_list as $key => $category) {
@@ -128,19 +149,16 @@ function theme_htmlmail_token_help($prefix = '[', $suffix = ']') {
   return $output;
 }
 
-
 /**
  * Process variables to format e-mail.
  *
  * @see htmlmail.tpl.php
  */
 function template_preprocess_htmlmail(&$variables) {
-  // path for linking images -- do we need this with tokens??
   $variables['path'] = url($variables['directory'], array('absolute' => TRUE));
   if (module_exists('token') && variable_get('htmlmail_token', '0')) {
     global $user;
     $types = array('user' => $user, 'profile' => $user);
-  
     $variables['header'] = token_replace_multiple(variable_get('htmlmail_header', ''), $types);
     $variables['footer'] = token_replace_multiple(variable_get('htmlmail_footer', ''), $types);
   }
@@ -149,15 +167,17 @@ function template_preprocess_htmlmail(&$variables) {
     $variables['footer'] = variable_get('htmlmail_footer', '');
   }
   $variables['css'] = variable_get('htmlmail_css', '');
+  $module = preg_replace('/_.*$/', '', $variables['key']);
+  $variables['template_files'][] = 'htmlmail-'. $module;
+  $variables['template_files'][] = 'htmlmail-'. $variables['key'];
 }
-
 
 /**
  * Implementation of hook_mail().
  */
 function htmlmail_mail($key, &$message, $params) {
   switch ($key) {
-  case 'htmlmail_test':
+  case 'test':
     $message['subject'] = $params['subject'];
     $message['body'] = $params['body'];
     break;
@@ -167,22 +187,22 @@ function htmlmail_mail($key, &$message, $params) {
 /**
  * If the Emogrifier <http://www.pelagodesign.com/sidecar/emogrifier/> exists,
  * the CSS styles inside the the $message['body'] are inserted into the other
- * HTML tags within the same $message['body'] as inline style attributes, 
+ * HTML tags within the same $message['body'] as inline style attributes,
  * based on CSS selectors.
  *
  * This function is based on code in the simplenews_template module.
  *
  * This emogrifier differs from that of simplenews_template in that it permits
- * modules or users to adjoin CSS into the $message['body'] using the HTML 
- * <style> tag.  The function searches the entire body for style tags, 
+ * modules or users to adjoin CSS into the $message['body'] using the HTML
+ * <style> tag.  The function searches the entire body for style tags,
  * concatenates them in order of appearance in the file, then sends them to
- * the Emogrifier script. 
+ * the Emogrifier script.
  *
- * Note that the method modifies the $message['body'] directly, and the 
- * return value is the modified $message['body'] string as well. 
+ * Note that the method modifies the $message['body'] directly, and the
+ * return value is the modified $message['body'] string as well.
  *
  * @param $message
- *           The message array to be sent. This function works directly 
+ *           The message array to be sent. This function works directly
  *           on the $message['body'].
  * @return $message['body']
  *           The modified message body string with inlined CSS applied.

@@ -1,5 +1,4 @@
 <?php
-// $Id: fb_example.module,v 1.15 2011/01/06 22:14:46 yogadex Exp $
 /**
  * @file
  *
@@ -88,7 +87,7 @@ function fb_example_form_alter(&$form, $form_state, $form_id) {
       // Add checkbox to control feed publish.
       $form['fb_example']['stream_publish'] = array(
         '#type' => 'checkbox',
-        '#title' => 'Share on Facebook',
+        '#title' => t('Share on Facebook'),
         '#default_value' => TRUE,
       );
     }
@@ -96,7 +95,7 @@ function fb_example_form_alter(&$form, $form_state, $form_id) {
       // Add checkbox to control feed publish.
       $form['fb_example']['stream_publish'] = array(
         '#type' => 'checkbox',
-        '#title' => 'Share on Facebook',
+        '#title' => t('Share on Facebook'),
         '#default_value' => TRUE,
       );
     }

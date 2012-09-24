@@ -6,12 +6,13 @@ http://www.drupalforfacebook.org, http://drupal.org/project/fb
 
 Primary author and maintainer: Dave Cohen (http://www.dave-cohen.com/contact)
 Do  NOT contact  the  maintainer  with a question  that  can be  easily
-answered with a web search.  You will not receive a reply.
+answered with a web search.  You may not receive a reply.
 
-Branch: DRUPAL-6--3 (version 3.x for Drupal 6.x)
+Branch: 6.x-3.x (version 3.x for Drupal 6.x)
 
-This file is more current than online documentation.  When in doubt, trust this file.
-Online documentation: http://drupal.org/node/195035, has more detail.
+This file is more current than online documentation.  When in doubt,
+trust this file.  Online documentation: http://drupal.org/node/195035,
+has more detail and you should read it next..
 
 To upgrade:
 
@@ -30,6 +31,8 @@ To install:
 
   $conf['fb_api_file'] = 'sites/all/libraries/facebook-php-sdk/src/facebook.php';
 
+  See also http://drupal.org/node/923804
+
 - Your theme needs the following attribute at the end of the <html> tag:
 
   xmlns:fb="http://www.facebook.com/2008/fbml"
@@ -42,16 +45,16 @@ To install:
 - To support canvas pages, url rewriting and other settings must be
   initialized before modules are loaded, so you must add this code to
   your settings.php.  This is easily done by adding these two lines to
-  the end of sites/_____/settings.php (usually
-  sites/default/settings.php).
+  the end of sites/default/settings.php (or
+  sites/YOUR_DOMAIN/settings.php).
 
   include "sites/all/modules/fb/fb_url_rewrite.inc";
   include "sites/all/modules/fb/fb_settings.inc";
 
-  (Remember to change the path if modules/fb is not in sites/all.)
+  (Change include paths if modules/fb is not in sites/all.)
 
 - Go to Administer >> Site Building >> Modules and enable the Facebook
-  modules.
+  modules that you need.
 
   Enable fb.module for Social Plugins.
 
@@ -67,8 +70,12 @@ To install:
   Enable fb_connect.module for Facebook Connect and/or
   fb_canvas.module for Canvas Page apps.
 
+  Pages at http://drupal.org/node/932690 will help you decide which
+  other modules you need to enable for your particular needs.
 
-To support Facebook Connect and/or Canvas Pages, read on...
+
+To support Facebook Connect, Canvas Pages, and/or Social Plugins that
+require an Application, read on...
 
 
 - You must enable clean URLs.  If you don't, some links that drupal
@@ -77,14 +84,15 @@ To support Facebook Connect and/or Canvas Pages, read on...
 - Create an application on Facebook, currently at
   http://www.facebook.com/developers/editapp.php?new.  Fill in the
   minimum required to get an apikey and secret.  If supporting canvas
-  pages, get a canvas name, too.
+  pages, specify a canvas name, too.  You may ignore other settings
+  for now.
 
 - Go to Administer >> Site Building >> Facebook Applications and click
-  the Add Applicaiton tab.  Use the apikey and secret that Facebook
-  has shown you.  If you have any trouble with the other fields, use
-  Facebook's documentation to figure it out.  When you submit your
-  changes, Drupal for Facebook will automatically set the callback URL
-  and some other properties which help it work properly.
+  the Add Applicaiton tab.  Use the app id, apikey and secret that
+  Facebook has shown you.  Hopefully other settings will be
+  self-explanitory.  When you submit your changes, Drupal for Facebook
+  will automatically set the callback URL and some other properties
+  which help it work properly.
 
 
 
@@ -94,13 +102,17 @@ Troubleshooting:
 Reread this file and follow instructions carefully.
 
 Read http://drupal.org/node/933994, and all the module documentation
-on drupal.org.
+on http://drupal.org/node/912614.
 
 Enable the fb_devel.module and add the block it provides (called
 "Facebook Devel Page info") to the footer of your Facebook theme.
+fb_devel.module will catch some errors and write useful information to
+Drupal's log and status page.
 
 Disable Global Redirect, if you have that module installed.  Users
-have reported problems with it and Drupal for Facebook.
+have reported problems with it and Drupal for Facebook.  Any module
+which implements custom url rewrites could interfere with canvas page
+and profile tab support.
 
 Bug reports and feature requests may be submitted.
 Here's an idea: check the issue queue before you submit
@@ -112,7 +124,7 @@ thoughtful response.  Seriously, prove that you read this far.
 
 Below are more options for your settings.php.  Add the PHP shown below
 to the very end of your settings.php, and modify the paths accordingly
-(i.e. where I use "sites/all/modules/fb", you might need
+(i.e. where this example has "sites/all/modules/fb", you might need
 "profiles/custom/modules/fb").
 
 

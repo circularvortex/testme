@@ -1,4 +1,4 @@
-// $Id: README.txt,v 1.11 2009/06/07 19:06:27 agentken Exp $
+// $Id: README.txt,v 1.11.2.1 2010/10/31 19:12:50 agentken Exp $
 
 /**
  * @file
@@ -40,8 +40,6 @@ site's settings.php file.
 
 Table prefixing is an advanced Drupal option; it should only be performed by
 experienced admins or by those willing to learn how table prefixing functions.
-
-For more information, see http://drupal.org/node/2622.
 
 This module may cause unexpected behavior.  Test any changes to your database
 carefully.

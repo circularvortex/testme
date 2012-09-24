@@ -1,5 +1,4 @@
 <?php
-// $Id: fb_url_rewrite.inc,v 1.7 2010/11/02 18:49:00 yogadex Exp $
 /**
  * @file
  * Performs custom url rewriting for Drupal for Facebook.

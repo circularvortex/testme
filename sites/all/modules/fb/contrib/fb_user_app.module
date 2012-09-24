@@ -1,5 +1,4 @@
 <?php
-// $Id: fb_user_app.module,v 1.5 2010/12/16 18:35:16 yogadex Exp $
 
 /**
  * @file
@@ -82,12 +81,16 @@ function fb_user_app_fb($op, $data, &$return) {
     // to provide it, depending on whether the user has logged in, and whether
     // the session has expired.
     $fbu = $data['fbu'];
-    $result = db_query("SELECT * FROM {fb_user_app} WHERE apikey = '%s' and fbu = %d AND session_key_expires > %d", $fb_app->apikey, $fbu, time());
+    $result = db_query("SELECT * FROM {fb_user_app} WHERE apikey = '%s' and fbu = %d", $fb_app->apikey, $fbu);
     $data = db_fetch_object($result);
 
     if ($data && $data->session_key)
       // Return array with FB id and apikey.
-      $return = array($data->fbu, $data->session_key);
+      $return = array(
+        'fbu' => $data->fbu,
+        'access_token' => $data->session_key,
+        'expires' => $data->session_key_expires,
+      );
   }
   elseif ($op == FB_OP_AJAX_EVENT) { // handle internal login
     // @TODO - global user is not correct here.
@@ -135,6 +138,7 @@ function fb_user_app_track_user($fb, $fb_app) {
   // test if we are tracking only those apps that have been granted offline
   // access.
   $fb_session = $fb->getSession();
+
   // when 'expires' == 0 app has been granted offline access
   if ($fb_user_type == 'user' &&
       $fb_session["expires"] <> 0 &&

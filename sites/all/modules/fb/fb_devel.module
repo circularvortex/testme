@@ -1,5 +1,4 @@
 <?php
-// $Id: fb_devel.module,v 1.68 2011/01/04 12:44:58 yogadex Exp $
 /**
  * @file
  * Makes development with Drupal for Facebook much easier.  Keep this
@@ -227,8 +226,8 @@ function fb_devel_fb($op, $data, &$return) {
     $message = t('Facebook has notified the %label application of a %type event.',
                  array('%label' => $fb_app->label,
                        '%type' => $type));
-    $message .= dprint_r($data, 1);
-    $message .= dprint_r($_REQUEST, 1);
+    $message .= '<pre>' . print_r($data, 1);
+    $message .= print_r($_REQUEST, 1) . '</pre>';
     watchdog('fb_devel', $message);
   }
 
@@ -624,7 +623,9 @@ function fb_devel_user($op, &$edit, &$account, $category = NULL) {
         if ($fbu = fb_get_fbu($account, $fb_app)) {
           $fb = fb_api_init($fb_app);
           try {
-            $info = $fb->api("/$fbu");
+            // Don't use fb_api() because we don't want the caching here.
+            $info = $fb->api("/$fbu", array('access_token' => fb_get_token($fb)));
+
             //$info = fb_users_getInfo(array($fbu), $fb, TRUE);
             $account->content['fb_devel'][$fb_app->label]['info'] = array(
               '#type' => 'markup',

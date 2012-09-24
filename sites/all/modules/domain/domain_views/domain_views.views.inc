@@ -1,5 +1,5 @@
 <?php
-// $Id: domain_views.views.inc,v 1.13.2.1 2010/05/04 15:06:25 agentken Exp $
+// $Id: domain_views.views.inc,v 1.13.2.3 2011/01/16 15:42:51 agentken Exp $
 
 /**
  * @file
@@ -25,6 +25,12 @@ function domain_views_views_data() {
   );
   //Define the joins.
   $data['domain']['table']['join']['node'] = array(
+    'left_table' => 'domain_access',
+    'left_field' => 'gid',
+    'field' => 'domain_id',
+  );
+  //Define the joins between {node_revision} and {domain}.
+  $data['domain']['table']['join']['node_revisions'] = array(
     'left_table' => 'domain_access',
     'left_field' => 'gid',
     'field' => 'domain_id',
@@ -114,6 +120,11 @@ function domain_views_views_data() {
   $data['domain_access']['table']['group'] = t('Domain Access');
   // Define the joins.
   $data['domain_access']['table']['join']['node'] = array(
+    'left_field' => 'nid',
+    'field' => 'nid',
+  );
+  // Define the join between {node_revisions} and {domain_access} table
+  $data['domain_access']['table']['join']['node_revisions'] = array(
     'left_field' => 'nid',
     'field' => 'nid',
   );
@@ -207,6 +218,11 @@ function domain_views_views_data() {
     'field' => 'uid',
   );
   $data['domain_editor']['table']['join']['node'] = array(
+    'left_field' => 'uid',
+    'field' => 'uid',
+  );
+  // Define the join between {node_revisions} and {domain_editor} table
+  $data['domain_editor']['table']['join']['node_revisions'] = array(
     'left_field' => 'uid',
     'field' => 'uid',
   );
@@ -334,7 +350,7 @@ function domain_views_views_plugins() {
 /**
  * Implement hook_views_query_substitutions ()
  */
-function domain_views_query_substitutions($view) {
+function domain_views_views_query_substitutions($view) {
   return array('***CURRENT_DOMAIN***' => $GLOBALS['_domain']['domain_id']);
 }
 

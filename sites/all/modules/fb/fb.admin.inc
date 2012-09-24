@@ -1,5 +1,4 @@
 <?php
-// $Id: fb.admin.inc,v 1.22.2.1 2011/02/10 00:20:55 yogadex Exp $
 /**
  * @file
  * Admin pages and forms for Drupal for Facebook.

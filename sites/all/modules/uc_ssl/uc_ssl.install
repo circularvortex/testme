@@ -1,0 +1,13 @@
+<?php
+// $Id: uc_ssl.install,v 1.1 2010/04/28 01:07:36 drupalstarz Exp $
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function uc_ssl_uninstall() 
+{
+   variable_del('uc_ssl_ssl_domain');
+   variable_del('uc_ssl_non_ssl_domain');
+   variable_del('uc_ssl_status');
+   variable_del('uc_ssl_switch_to_non_ssl');
+}

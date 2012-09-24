@@ -1,6 +1,4 @@
 <?php
-// $Id: fb_user.module,v 1.102.2.1 2011/02/10 00:22:37 yogadex Exp $
-
 /**
  * @file
  * This module manages relations between local Drupal user accounts
@@ -430,13 +428,14 @@ function _fb_user_process_authorized_user() {
 
 
 function _fb_user_facebook_data($fb) {
-  $fbu = fb_facebook_user($fb);
-  try {
-    $data = $fb->api('/' . $fbu); // Facebook Graph lookup.
-    return $data;
-  }
-  catch (FacebookApiException $e) {
-    fb_log_exception($e, t('Failed lookup of %fbu.', array('%fbu' => $fbu)));
+  if ($fbu = fb_facebook_user($fb)) {
+    try {
+      $data = fb_api($fbu);
+      return $data;
+    }
+    catch (FacebookApiException $e) {
+      fb_log_exception($e, t('Failed lookup of %fbu.', array('%fbu' => $fbu)));
+    }
   }
 }
 
@@ -624,8 +623,7 @@ function fb_user_user($op, &$edit, &$account, $category = NULL) {
     $fbu = _fb_user_get_fbu($account->uid);
 
     if ($fbu) {
-      // The drupal user is a facebook user.  Now, learn more from facebook.
-      $info = fb_users_getInfo(array($fbu));
+      // The drupal user is a facebook user.
       $form['map'] = array(
         '#type' => 'checkbox',
         '#title' => t('Connect to facebook.com'),
@@ -633,36 +631,35 @@ function fb_user_user($op, &$edit, &$account, $category = NULL) {
         '#return_value' => $fbu,
         '#description' => '',
       );
-      if (is_array($info[0])) {
-        $data = $info[0];
-        $fb_link = l($data['name'] ? $data['name'] : $fbu,
-                     'http://www.facebook.com/profile.php', array(
-                       'query' => array('id' => $data['uid'])));
-
-        $form['map']['#description'] .=
-          t('Local account !username corresponds to !profile_page on Facebook.com.',
-            array(
-              '!username' => l($account->name, 'user/' . $account->uid),
-              '!profile_page' => $fb_link));
-
-        if (fb_facebook_user() == $fbu) {
-          // The user is currently connected to facebook.  Depending on
-          // config, they may not be able to break the connection.
-          $form['map']['#disabled'] = TRUE;
-          $form['map']['#description'] .= '<br/>' . t('(Checkbox disabled because you are currently connected to facebook.)');
-
+      // Now, learn more from facebook.
+      try {
+        $data = fb_api($fbu, array('access_token' => fb_get_token()));
+        if (count($data)) {
+          $form['map']['#description'] .=
+            t('Local account !username corresponds to !profile_page on Facebook.com.',
+              array(
+                '!username' => l($account->name, 'user/' . $account->uid),
+                '!profile_page' => l($data['name'], $data['link'])));
         }
-        else {
-          $form['map']['#description'] .= '<br/>' . t('Uncheck then click save to delete this connection.');
+      }
+      catch (Exception $e) {
+        fb_log_exception($e, t('Failed to get user data from facebook.'));
+      }
 
-        }
+      if (fb_facebook_user() == $fbu) {
+        // The user is currently connected to facebook.  Depending on
+        // config, they may not be able to break the connection.
+        $form['map']['#disabled'] = TRUE;
+        $form['map']['#description'] .= '<br/>' . t('(Checkbox disabled because you are currently connected to facebook.)');
+      }
+      else {
+        $form['map']['#description'] .= '<br/>' . t('Uncheck then click save to delete this connection.');
       }
     }
 
     if (!$fbu) {  // this tells us that a mapping hasn't been created
       if ($user->uid == $account->uid) {
         // Could not obtain the $fbu from an existing map.
-
         $fbu = fb_facebook_user();
 
         if ($fbu) {  // they are connected to facebook; give option to map
@@ -684,7 +681,7 @@ function fb_user_user($op, &$edit, &$account, $category = NULL) {
           );
 
         }
-        elseif (!$fbu) {
+        elseif (!$fbu && $_fb_app) {
           // they are not connected to facebook; give option to connect here
           $fb_button = theme('fb_login_button', t('Connect with Facebook'));
           $form['fb_user'] = array(
@@ -768,24 +765,12 @@ function fb_user_user($op, &$edit, &$account, $category = NULL) {
 function _fb_user_set_map($account, $fbu) {
   if ($fbu &&
       $account->uid != 0) {
-    $an_fb_user = array(
-      'uid' => $account->uid,
-      'fbu' => $fbu,
-    );
 
-    // test if record exists
-    // @TODO - should this be DELETE FROM {fb_user} WHERE uid=%d OR fbu=%d?
-    $sql = "SELECT count(*) AS c FROM {fb_user} WHERE uid = %d";
-    $result = db_query($sql, $account->uid);
+    // Delete any pre-existing mapping that might exist for this local uid or fbu.
+    db_query("DELETE FROM {fb_user} WHERE uid=%d OR fbu=%d", $account->uid, $fbu);
 
-    $rec = db_fetch_object($result);
-    if ($rec->c > 0) {
-      // exists so send along keys for drupal_write_record to update record
-      $result = drupal_write_record('fb_user', $an_fb_user, "uid");
-    }
-    else {
-      $result = drupal_write_record('fb_user', $an_fb_user);
-    }
+    // Create the new mapping.
+    db_query("INSERT INTO {fb_user} (uid, fbu) VALUES (%d, %d)", $account->uid, $fbu);
 
     if (fb_verbose()) {
       watchdog('fb_user', 'Using fb_user to associate user !user with facebook user id %fbu.',
@@ -963,11 +948,8 @@ function fb_user_get_local_friends($fbu = NULL, $fb_app = NULL) {
     $fbu = fb_facebook_user();
   }
   $uids = array();
-  if ($fbus = fb_get_friends($fbu, $fb_app)) {
-    $query = "SELECT uid FROM {fb_user} WHERE fbu IN ('%s')";
-    $args[] = implode(',', $fbus);
-    $result = db_query($query, $args);
-
+  if (($fbus = fb_get_friends($fbu, $fb_app)) && count($fbus)) {
+    $result = db_query("SELECT uid FROM {fb_user} WHERE fbu IN (%s)", implode(',', $fbus));
     while ($data = db_fetch_object($result)) {
       if ($data->uid) {
         $uids[] = $data->uid;

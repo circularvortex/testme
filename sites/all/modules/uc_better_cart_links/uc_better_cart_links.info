@@ -1,0 +1,17 @@
+; $Id: uc_better_cart_links.info,v 1.1 2010/10/09 13:50:39 ktleow Exp $
+
+name = "Better Cart Links"
+description = "Enhance Ubercart's standard Cart Links module by providing tokenized or encrypted cart links."
+dependencies[] = uc_cart
+dependencies[] = uc_cart_links
+package = "Ubercart - extra"
+core = "6.x"
+php = "5.0"
+
+
+; Information added by drupal.org packaging script on 2010-11-12
+version = "6.x-1.x-dev"
+core = "6.x"
+project = "uc_better_cart_links"
+datestamp = "1289564627"
+

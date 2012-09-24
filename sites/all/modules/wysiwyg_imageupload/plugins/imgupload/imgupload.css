@@ -1,7 +1,22 @@
 .imgupl_floating_none
 {
-  float:none;
-  display:block;
+	float:none;
+	display:block;
+	text-align:center;
+}
+
+.imgupl_floating_none_left
+{
+	float:none;
+	display:block;
+	text-align:left;
+}
+
+.imgupl_floating_none_right
+{
+float:none;
+display:block;
+text-align:right;
 }
 
 .imgupl_floating_left
@@ -64,6 +79,10 @@ div.imgupl_styles_spacing_20_black_border .image_title, div.imgupl_styles_black_
 
 #image_details {
   float:left;
+}
+
+.image_meta {
+  display:block;
 }
 
 #image_details_form {

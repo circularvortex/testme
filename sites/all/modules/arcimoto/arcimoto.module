@@ -548,6 +548,3 @@ function arcimoto_form_aggregator_admin_settings_alter($form, $form_state) {
 function arcimoto_uc_invoice_templates() {
   return array('admin', 'customer', 'wings');
 }
-
-
-

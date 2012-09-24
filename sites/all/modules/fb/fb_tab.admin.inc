@@ -1,5 +1,4 @@
 <?php
-// $Id: fb_tab.admin.inc,v 1.6 2010/11/02 18:42:39 yogadex Exp $
 
 /**
  * @file

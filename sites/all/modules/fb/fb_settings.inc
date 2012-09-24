@@ -1,5 +1,4 @@
 <?php
-// $Id: fb_settings.inc,v 1.32 2011/01/06 07:53:52 yogadex Exp $
 
 /**
  * @file

@@ -57,7 +57,7 @@ FB_JS.getUrlVars = function(href) {
   {
     hash = hashes[i].split('=');
     vars[hash[0]] = hash[1];
-    if (hash[0] != '_fb_js_fbu')
+    if (hash[0] != 'fbu')
       vars.push(hashes[i]); // i.e. "foo=bar"
   }
   return vars;
@@ -78,7 +78,7 @@ FB_JS.reload = function(destination) {
   // Avoid infinite reloads
   ///@TODO - does not work on iframe because facebook does not pass url args to canvas frame when cookies not accepted.  http://forum.developers.facebook.net/viewtopic.php?id=77236
   var vars = FB_JS.getUrlVars(window.location.href);
-  if (vars._fb_js_fbu == fbu) {
+  if (vars.fbu == fbu) {
     return; // Do not reload (again)
   }
 
@@ -104,8 +104,8 @@ FB_JS.reload = function(destination) {
     path = destination.substr(0, destination.indexOf('?'));
   }
 
-  // Add _fb_js_fbu to params before reload.
-  vars.push('_fb_js_fbu=' + fbu);
+  // Add fbu to params before reload.
+  vars.push('fbu=' + fbu);
 
   // Use window.top for iframe canvas pages.
   destination = path + '?' + vars.join('&');
@@ -113,6 +113,10 @@ FB_JS.reload = function(destination) {
   if(Drupal.settings.fb.reload_url_fragment) {
     destination = destination + "#" + Drupal.settings.fb.reload_url_fragment;
   }
+
+  // Feedback that entire page may be reloading.
+  // @TODO improve the appearance of this, make it customizable.
+  jQuery('body').prepend('<div id="fb_js_pb" class="progress"><div class="bar"><div class="filled"></div></div></div>');
 
   window.top.location = destination;
   //alert(destination);
@@ -139,6 +143,7 @@ FB_JS.sessionChange = function(response) {
 
     // Sometimes Facebook's invalid cookies are left around.  Let's try to clean up their crap.
     // Can get left behind when third-party cookies disabled.
+    FB_JS.deleteCookie('fbs_' + FB._apiKey, '/', '');
     FB_JS.deleteCookie('fbs_' + Drupal.settings.fb.apikey, '/', '');
   }
 
@@ -174,6 +179,7 @@ FB_JS.sessionChangeHandler = function(context, status) {
     // Suppress facebook-controlled session.
     data.fb_session_handoff = true;
   }
+
   FB_JS.ajaxEvent(data.event_type, data);
   // No need to call window.location.reload().  It will be called from ajaxEvent, if needed.
 };
@@ -181,41 +187,58 @@ FB_JS.sessionChangeHandler = function(context, status) {
 
 // Helper to pass events via AJAX.
 // A list of javascript functions to be evaluated is returned.
-FB_JS.ajaxEvent = function(event_type, data) {
+FB_JS.ajaxEvent = function(event_type, request_data) {
   if (Drupal.settings.fb.ajax_event_url) {
 
     // Session data helpful in ajax callbacks.  See fb_settings.inc.
-    data.fb_js_session = JSON.stringify(FB.getSession());
+    request_data.fb_js_session = JSON.stringify(FB.getSession());
     if (typeof(Drupal.settings.fb_page_type) != 'undefined') {
-      data.fb_js_page_type = Drupal.settings.fb_page_type;
+      request_data.fb_js_page_type = Drupal.settings.fb_page_type;
     }
 
-    // Other values to always include.
-    data.apikey = FB._apiKey;
+    // FB._apikey might be an apikey or might be an appid!
+    if (FB._apiKey == Drupal.settings.fb.fb_init_settings.appId ||
+        FB._apiKey == Drupal.settings.fb.fb_init_settings.apiKey) {
+      request_data.apikey = Drupal.settings.fb.fb_init_settings.apiKey;
+    }
+
+    // Other values to pass to ajax handler.
     if (Drupal.settings.fb.controls) {
-      data.fb_controls = Drupal.settings.fb.controls;
+      request_data.fb_controls = Drupal.settings.fb.controls;
     }
 
-    jQuery.post(Drupal.settings.fb.ajax_event_url + '/' + event_type, data,
-                function(js_array, textStatus, XMLHttpRequest) {
-                  //debugger; // debug
-                  if (js_array.length > 0) {
-                    for (var i = 0; i < js_array.length; i++) {
-                      eval(js_array[i]);
-                    }
-                  }
-                  else {
-                    if (event_type == 'session_change') {
-                      // No instructions from ajax, reload entire page.
-                      FB_JS.reload();
-                    }
-                  }
-                }, 'json');
+    jQuery.ajax({
+      url: Drupal.settings.fb.ajax_event_url + '/' + event_type,
+      data : request_data,
+      type: 'POST',
+      dataType: 'json',
+      success: function(js_array, textStatus, XMLHttpRequest) {
+        if (js_array.length > 0) {
+          for (var i = 0; i < js_array.length; i++) {
+            eval(js_array[i]);
+          }
+        }
+        else {
+          if (event_type == 'session_change') {
+            // No instructions from ajax, reload entire page.
+            FB_JS.reload();
+          }
+        }
+      },
+      error: function(jqXHR, textStatus, errorThrown) {
+        var header = jqXHR.getResponseHeader();
+        var headers = jqXHR.getAllResponseHeaders();
+        debugger;
+        // @TODO: handle error, but how?
+        FB_JS.reload();
+        //alert('FB_JS.ajaxEvent error handler called.');
+      }
+    });
   }
 };
 
 // Delete a cookie.
-// ??? Still needed?  Facebook's JS SDK may take care of this now.
+// Facebook's JS SDK attempts to delete, but I'm not convinced it always works.
 FB_JS.deleteCookie = function( name, path, domain ) {
   document.cookie = name + "=" +
     ( ( path ) ? ";path=" + path : "") +
@@ -238,6 +261,11 @@ FB_JS.sessionSanityCheck = function() {
   }
 };
 
+/**
+ * Drupal behaviors hook.
+ *
+ * Called when page is loaded, or content added via javascript.
+ */
 Drupal.behaviors.fb = function(context) {
   // Respond to our jquery pseudo-events
   var events = jQuery(document).data('events');
@@ -245,7 +273,7 @@ Drupal.behaviors.fb = function(context) {
     jQuery(document).bind('fb_session_change', FB_JS.sessionChangeHandler);
   }
 
-  // Once upon a time, we initialized facebook's JS SDK here.  But now that is done in fb_footer().
+  // Once upon a time, we initialized facebook's JS SDK here, but now that is done in fb_footer().
 
   if (typeof(FB) != 'undefined') {
     // Render any XFBML markup that may have been added by AJAX.

@@ -1,5 +1,5 @@
 <?php
-// $Id: domain_conf.admin.inc,v 1.14.2.6 2010/09/22 21:26:32 agentken Exp $
+// $Id: domain_conf.admin.inc,v 1.14.2.7 2010/10/31 17:30:32 agentken Exp $
 
 /**
  * @file
@@ -120,7 +120,7 @@ function domain_conf_form($form_state, $domain) {
  *   A $form array according to the FormsAPI, if unique configuration is possible.
  */
 
-function domain_conf_default($domain) {
+function domain_conf_default($form_state, $domain) {
   drupal_set_title(t('@site : Domain site settings', array('@site' => $domain['sitename'])));
   $form = array();
   // Grab any extra elements defined by other modules.
