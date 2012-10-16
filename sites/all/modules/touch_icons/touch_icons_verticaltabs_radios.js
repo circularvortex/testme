@@ -1,5 +1,3 @@
-// $Id: touch_icons_verticaltabs_radios.js,v 1.1.2.1 2010/02/14 13:59:38 andrewmacpherson Exp $
-
 /**
  * @file
  *
@@ -16,5 +14,5 @@ Drupal.verticalTabs.touch_icons = function() {
       vals.push($(this).text());
     }
   });
-  return vals.join(', ');
-}
+  return vals.join(',<br />');
+};

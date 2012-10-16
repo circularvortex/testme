@@ -1,4 +1,3 @@
-// $Id: uc_varprice.js,v 1.1 2009/05/15 21:40:04 rszrama Exp $
 
 /**
  * @file

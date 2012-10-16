@@ -1,4 +1,4 @@
-; $Id: uc_varprice.info,v 1.1 2009/05/15 21:40:04 rszrama Exp $
+
 name = Variable Price
 description = Defines a product feature to turn any product into a variable priced product.
 dependencies[] = uc_cart
@@ -8,9 +8,9 @@ package = Ubercart - extra
 core = 6.x
 php = 5.0
 
-; Information added by drupal.org packaging script on 2009-05-19
-version = "6.x-1.0-rc3"
+; Information added by drupal.org packaging script on 2012-07-08
+version = "6.x-1.5"
 core = "6.x"
 project = "uc_varprice"
-datestamp = "1242709317"
+datestamp = "1341706043"
 

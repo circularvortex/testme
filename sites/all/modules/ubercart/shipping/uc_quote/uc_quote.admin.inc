@@ -1,5 +1,4 @@
 <?php
-// $Id: uc_quote.admin.inc,v 1.1.2.11 2010/07/12 01:57:35 tr Exp $
 
 /**
  * @file
@@ -7,7 +6,7 @@
  */
 
 /**
- * Display an overview of the shipping quote settings.
+ * Displays an overview of the shipping quote settings.
  */
 function uc_quote_overview() {
   $summaries = array();
@@ -28,12 +27,17 @@ function uc_quote_overview() {
  * the others. Also sets the default quote and shipping types of all products
  * in the store. Individual products may be configured differently.
  *
- * @ingroup forms
  * @see uc_quote_admin_settings_submit()
+ * @ingroup forms
  */
 function uc_quote_admin_settings() {
   $address = variable_get('uc_quote_store_default_address', new stdClass());
-  $form = array();
+  $fields = array('first_name', 'last_name', 'company', 'street1', 'street2', 'city', 'zone', 'postal_code', 'country', 'phone');
+  foreach ($fields as $field) {
+    if (!isset($address->$field)) {
+      $address->$field = '';
+    }
+  }
 
   $form['uc_quote_log_errors'] = array(
     '#type' => 'checkbox',
@@ -72,7 +76,7 @@ function uc_quote_admin_settings() {
     '#summary callback ' => 'summarize_form',
     '#tree' => TRUE,
     '#collapsible' => TRUE,
-    '#collapsed' => FALSE,
+    '#collapsed' => TRUE,
   );
   $form['uc_quote_pane_description']['text'] = array(
     '#type' => 'textarea',
@@ -88,7 +92,7 @@ function uc_quote_admin_settings() {
     '#summary callback' => 'summarize_form',
     '#tree' => TRUE,
     '#collapsible' => TRUE,
-    '#collapsed' => FALSE,
+    '#collapsed' => TRUE,
   );
   $form['uc_quote_err_msg']['text'] = array(
     '#type' => 'textarea',
@@ -101,7 +105,7 @@ function uc_quote_admin_settings() {
   $form['default_address'] = array(
     '#type' => 'fieldset',
     '#title' => t('Default pickup address'),
-    '#description' => t("When delivering products to customers, the original location of the product must be known in order to accurately quote the shipping cost and set up a delivery. This form provides the default location for products across the entire store. If a product's individual pickup address is blank, &Uuml;bercart looks for the manufacturer's. If that is also blank, it uses the store's default pickup address."),
+    '#description' => t("When delivering products to customers, the original location of the product must be known in order to accurately quote the shipping cost and set up a delivery. This form provides the default location for all products in the store. If a product's individual pickup address is blank, Ubercart uses the store's default pickup address specified here."),
     '#summary' => t('Default pickup address is: <br />!address', array('!address' => uc_address_format(
       $address->first_name,
       $address->last_name,
@@ -114,7 +118,7 @@ function uc_quote_admin_settings() {
       $address->country
     ))),
     '#collapsible' => TRUE,
-    '#collapsed' => FALSE,
+    '#collapsed' => TRUE,
   );
   $form['default_address']['first_name'] = uc_textfield(uc_get_field_name('first_name'), $address->first_name, FALSE);
   $form['default_address']['last_name'] = uc_textfield(uc_get_field_name('last_name'), $address->last_name, FALSE);
@@ -138,6 +142,8 @@ function uc_quote_admin_settings() {
 }
 
 /**
+ * Form submission handler for uc_quote_admin_settings().
+ *
  * @see uc_quote_admin_settings()
  */
 function uc_quote_admin_settings_submit($form, &$form_state) {
@@ -168,17 +174,14 @@ function uc_quote_admin_settings_submit($form, &$form_state) {
 /**
  * Settings for the shipping quote methods.
  *
- * Enable and reorder shipping quote methods. Set the default shipping type.
+ * Enables and reorders shipping quote methods. Sets the default shipping type.
  *
+ * @see uc_quote_method_settings_validate()
+ * @see uc_quote_method_settings_submit()
+ * @see theme_uc_quote_method_settings()
  * @ingroup forms
- * @see
- *   theme_uc_quote_method_settings()
- *   uc_quote_method_settings_validate()
- *   uc_quote_method_settings_submit()
  */
 function uc_quote_method_settings() {
-  $form = array();
-
   $form['methods'] = array(
     '#tree' => TRUE,
     '#summary callback' => 'summarize_form',
@@ -191,24 +194,28 @@ function uc_quote_method_settings() {
     foreach ($methods as $id => $title) {
 
       $form['methods'][$id]['#summary callback'] = 'summarize_form';
-      $form['methods'][$id]['uc_quote_enabled'] = array('#type' => 'checkbox',
+      $form['methods'][$id]['uc_quote_enabled'] = array(
+        '#type' => 'checkbox',
+        '#title' => $title,
         '#default_value' => $enabled[$id],
         '#summary callback' => 'summarize_checkbox',
         '#summary arguments' => array(
-          l(t('@method is enabled.', array('@method' => $title)), 'admin/store/settings/quotes/methods/'. $id),
+          t('@method is enabled.', array('@method' => $title)),
           '',
         ),
       );
-      $form['methods'][$id]['uc_quote_method_weight'] = array('#type' => 'weight',
-        '#delta' => 5,
+      $form['methods'][$id]['uc_quote_method_weight'] = array(
+        '#type' => 'weight',
         '#default_value' => isset($weight[$id]) ? $weight[$id] : 0,
+        '#attributes' => array('class' => 'uc-quote-method-weight'),
       );
     }
   }
 
   $shipping_types = uc_quote_shipping_type_options();
   if (is_array($shipping_types)) {
-    $form['uc_quote_type_weight'] = array('#type' => 'fieldset',
+    $form['uc_quote_type_weight'] = array(
+      '#type' => 'fieldset',
       '#title' => t('List position'),
       '#description' => t('Determines which shipping methods are quoted at checkout when products of different shipping types are ordered. Larger values take precedence.'),
       '#collapsible' => TRUE,
@@ -221,19 +228,21 @@ function uc_quote_method_settings() {
     foreach ($shipping_methods as $method) {
       $method_types[$method['quote']['type']][] = $method['title'];
     }
-    if (is_array($method_types['order'])) {
+    if (isset($method_types['order']) && is_array($method_types['order'])) {
       $count = count($method_types['order']);
       $form['uc_quote_type_weight']['#description'] .= format_plural($count, '<br />The %list method is compatible with any shipping type.', '<br />The %list methods are compatible with any shipping type.', array('%list' => implode(', ', $method_types['order'])));
     }
     foreach ($shipping_types as $id => $title) {
-      $form['uc_quote_type_weight'][$id] = array('#type' => 'weight',
-        '#title' => $title . (is_array($method_types[$id]) ? ' ('. implode(', ', $method_types[$id]) .')' : ''),
+      $form['uc_quote_type_weight'][$id] = array(
+        '#type' => 'weight',
+        '#title' => $title . (isset($method_types[$id]) && is_array($method_types[$id]) ? ' ('. implode(', ', $method_types[$id]) .')' : ''),
         '#delta' => 5,
         '#default_value' => isset($weight[$id]) ? $weight[$id] : 0,
       );
     }
   }
-  $form['uc_store_shipping_type'] = array('#type' => 'select',
+  $form['uc_store_shipping_type'] = array(
+    '#type' => 'select',
     '#title' => t('Default order fulfillment type for products'),
     '#options' => $shipping_types,
     '#default_value' => variable_get('uc_store_shipping_type', 'small_package'),
@@ -245,34 +254,40 @@ function uc_quote_method_settings() {
 }
 
 /**
- * Display a formatted list of shipping quote methods and form elements.
+ * Displays a formatted list of shipping quote methods and form elements.
  *
- * @ingroup themeable
  * @see uc_quote_method_settings()
+ * @ingroup themeable
  */
 function theme_uc_quote_method_settings($form) {
-  $methods = uc_quote_shipping_method_options();
-  $output = '';
+  drupal_add_tabledrag('uc-quote-methods', 'order', 'sibling', 'uc-quote-method-weight');
 
-  $header = array(t('Enable'), t('Shipping method'), t('List position'));
+  $header = array(t('Shipping method'), t('List position'));
   $rows = array();
   foreach (element_children($form['methods']) as $method) {
-    $row = array();
-    $row[] = drupal_render($form['methods'][$method]['uc_quote_enabled']);
-    $row[] = $methods[$method];
-    $row[] = drupal_render($form['methods'][$method]['uc_quote_method_weight']);
-    $rows[] = $row;
+    $row = array(
+      drupal_render($form['methods'][$method]['uc_quote_enabled']),
+      drupal_render($form['methods'][$method]['uc_quote_method_weight']),
+    );
+
+    $rows[] = array(
+      'data' => $row,
+      'class' => 'draggable',
+    );
   }
-  $output .= theme('table', $header, $rows);
+  $output = theme('table', $header, $rows, array('id' => 'uc-quote-methods'));
 
   $output .= drupal_render($form);
   return $output;
 }
 
 /**
- * Require at least one enabled shipping method.
+ * Form validation for uc_quote_method_settings().
+ *
+ * Requires at least one enabled shipping method.
  *
  * @see uc_quote_method_settings()
+ * @see uc_quote_method_settings_submit()
  */
 function uc_quote_method_settings_validate($form, &$form_state) {
   $none_enabled = TRUE;
@@ -289,7 +304,10 @@ function uc_quote_method_settings_validate($form, &$form_state) {
 }
 
 /**
+ * Form submission handler for uc_quote_method_settings().
+ *
  * @see uc_quote_method_settings()
+ * @see uc_quote_method_settings_validate()
  */
 function uc_quote_method_settings_submit($form, &$form_state) {
   $enabled = array();

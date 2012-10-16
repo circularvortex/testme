@@ -1,5 +1,4 @@
 <?php
-// $Id: mollom_test.install,v 1.1.2.2 2010/10/16 18:24:54 sun Exp $
 
 /**
  * @file
@@ -55,5 +54,6 @@ function mollom_test_install() {
  */
 function mollom_test_uninstall() {
   drupal_uninstall_schema('mollom_test');
+  db_query("DELETE FROM {variables} WHERE name LIKE 'mollom_test.%'");
 }
 

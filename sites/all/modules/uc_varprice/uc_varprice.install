@@ -56,6 +56,31 @@ function uc_varprice_schema() {
         'not null' => TRUE,
         'default' => '',
       ),
+      'arbitrary' => array(
+        'type' => 'int',
+        'size' => 'tiny',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'selectable' => array(
+        'type' => 'int',
+        'size' => 'tiny',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'sel_widget' => array(
+        'type' => 'varchar',
+        'length' => 8,
+        'not null' => TRUE,
+        'default' => 'radios',
+      ),
+      'sel_options' => array(
+        'type' => 'text',
+        'not null' => TRUE,
+        'default' => '',
+      ),
     ),
     'indexes' => array(
       'pfid' => array('pfid'),
@@ -74,4 +99,22 @@ function uc_varprice_uninstall() {
   drupal_uninstall_schema('uc_varprice');
   db_query("DELETE FROM {uc_product_features} WHERE fid = 'varprice'");
   variable_del('uc_varprice_global_default');
+  global $conf;
+  foreach (array_keys($conf) as $key) {
+    if (strpos($key, 'ucvp_class_def_') === 0) {
+      variable_del($key);
+    }
+  }
+}
+
+function uc_varprice_update_6001() {
+  $added = array();
+  $schema = uc_varprice_schema();
+  // Add new fields
+  foreach (array('arbitrary', 'selectable', 'sel_widget', 'sel_options') as $key) {
+    db_add_field($added, 'uc_varprice_products', $key, $schema['uc_varprice_products']['fields'][$key]);
+  }
+  // Define all currently-existing varprice fields as arbitrary price only fields
+  db_query('UPDATE {uc_varprice_products} SET arbitrary = 1');
+  return $added;
 }

@@ -1,4 +1,3 @@
-// $Id: uc_quote.js,v 1.5.2.9 2009/10/20 20:58:07 islandusurper Exp $
 
 /**
  * @file
@@ -18,11 +17,11 @@ function setQuoteCallbacks(products, context) {
   };
   $("input[name*=delivery_postal_code]:not(.getQuotes-processed)", context).addClass('getQuotes-processed').change(triggerQuoteCallback);
   $("input[id*=quote-button]:not(.getQuotes-processed)", context).addClass('getQuotes-processed').click(function() {
-    // returns false to prevent default actions and propogation
+    // returns false to prevent default actions and propagation
     return quoteCallback(products);
   });
   $("input[name*=quote_method]:not(.getQuotes-processed)", context).addClass('getQuotes-processed').change(function() {
-    // returns false to prevent default actions and propogation
+    // returns false to prevent default actions and propagation
     return quoteCallback(products);
   });
   $("select[name*=delivery_address_select]:not(.getQuotes-processed)", context).addClass('getQuotes-processed').change(function() {
@@ -73,7 +72,7 @@ function quoteCallback(products) {
 
   page = $("input:hidden[name*=page]").val();
   details = new Object();
-  details["uid"] = $("input[name*=uid]").val();
+  details["uid"] = $("input:hidden[name*=uid]").val();
   //details["details[zone]"] = $("select[name*=delivery_zone] option:selected").val();
   //details["details[country]"] = $("select[name*=delivery_country] option:selected").val();
 
@@ -100,7 +99,6 @@ function quoteCallback(products) {
       products += "|" + $("input[name^='products[" + i + "]']").filter("[name$='[nid]']").val();
       products += "^" + $("input[name^='products[" + i + "]']").filter("[name$='[title]']").val();
       products += "^" + $("input[name^='products[" + i + "]']").filter("[name$='[model]']").val();
-      products += "^" + $("input[name^='products[" + i + "]']").filter("[name$='[manufacturer]']").val();
       products += "^" + $("input[name^='products[" + i + "]']").filter("[name$='[qty]']").val();
       products += "^" + $("input[name^='products[" + i + "]']").filter("[name$='[cost]']").val();
       products += "^" + $("input[name^='products[" + i + "]']").filter("[name$='[price]']").val();

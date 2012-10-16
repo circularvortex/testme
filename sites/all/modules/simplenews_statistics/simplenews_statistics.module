@@ -99,9 +99,16 @@ function simplenews_statistics_click() {
   $stat = _simplenews_statistics_decode($_GET);
 
   if ($stat['mail'] && $stat['nid'] && $stat['url']) {
-    db_query("INSERT INTO {simplenews_statistics_clicks} (email, nid, url, timestamp) VALUES ('%s', %d, '%s', %d)", 
-            $stat['mail'], $stat['nid'], urldecode($stat['url']), time());
-    
+    db_query("INSERT INTO {simplenews_statistics_clicks} (email, nid, url, timestamp)
+      VALUES ('%s', %d, '%s', %d)", $stat['mail'], $stat['nid'], urldecode($stat['url']), time());
+
+    foreach ($stat as $idx=>$stat_param) {
+      if ($idx!='nid' && $idx!='mail' && $idx!='url') {
+        $idx = str_replace('amp;amp;', '', $idx);
+        $stat['url'] = $stat['url'].'&'.$idx.'='.$stat_param;
+      }
+    }
+
     drupal_goto(urldecode($stat['url']));
   }
   

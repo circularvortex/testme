@@ -1,0 +1,50 @@
+<?php
+
+/**
+ * Implementation of hook_update_N().
+ *
+ * After 6.x-1.0-beta4, the names of the theme settings variables for
+ * the icon file paths were changed...
+ * 
+ * OLD: touch_icon_path_plain 
+ * NEW: touch_icon_plain_path 
+ *
+ * OLD: touch_icon_path_precomp
+ * NEW: touch_icon_precomp_path
+ *
+ * This update tests for the old style variable name, and migrates it
+ * to the new style variable name.
+ */
+function touch_icons_update_6100() {
+
+  // update general theme settings
+  $settings = theme_get_settings(NULL);
+  if ( !empty($settings[touch_icon_path_plain]) ) {
+    $settings[touch_icon_plain_path] = $settings[touch_icon_path_plain];
+    unset($settings[touch_icon_path_plain]);
+  }
+  if ( !empty($settings[touch_icon_path_precomp]) ) {
+    $settings[touch_icon_precomp_path] = $settings[touch_icon_path_precomp];
+    unset($settings[touch_icon_path_precomp]);
+  }
+  variable_set('theme_settings', $settings);
+
+  // update settings for specific themes
+  $allThemes = list_themes(TRUE);
+  foreach( $allThemes as $key => $value) {
+    if ( variable_get('theme_'.$key.'_settings', NULL)) {
+      $settings = theme_get_settings($key);
+      if ( !empty($settings[touch_icon_path_plain]) ) {
+        $settings[touch_icon_plain_path] = $settings[touch_icon_path_plain];
+        unset($settings[touch_icon_path_plain]);
+      }
+      if ( !empty($settings[touch_icon_path_precomp]) ) {
+        $settings[touch_icon_precomp_path] = $settings[touch_icon_path_precomp];
+        unset($settings[touch_icon_path_precomp]);
+      }
+      variable_set('theme_'.$key.'_settings', $settings);
+    }
+  }
+
+  return array(); // nothing to report
+}

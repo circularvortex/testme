@@ -1,5 +1,4 @@
 <?php
-// $Id: expire.rules.inc,v 1.1.2.1 2011/02/08 08:44:25 mikeytown2 Exp $
 
 /**
  * @file

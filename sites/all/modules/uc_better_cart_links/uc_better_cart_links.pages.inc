@@ -1,5 +1,4 @@
 <?php
-// $Id: uc_better_cart_links.pages.inc,v 1.1 2010/10/09 13:50:39 ktleow Exp $
 
 /**
  * @file

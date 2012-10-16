@@ -1,5 +1,5 @@
 <?php
-// $Id: advf-forum-post.tpl.php,v 1.1.2.21 2009/02/07 04:40:48 michellec Exp $
+// $Id: advf-forum-post.tpl.php,v 1.1.2.23 2011/01/18 03:43:18 michellec Exp $
 
 /**
  * @file
@@ -31,7 +31,7 @@
 
 <?php else: ?>
   <?php $classes .= $comment_classes; ?>
-  <div id="comment-<?php print $comment->cid; ?>" class="forum-post <?php print $classes; ?> clear-block">
+  <div class="forum-post <?php print $classes; ?> clear-block">
 <?php endif; ?>
 
   <div class="post-info clear-block">
@@ -74,12 +74,12 @@
   </div>
 
   <div class="forum-post-footer clear-block">
-    <div class="forum-jump-links clearfix">
-      <a href="#top" title="Jump to top of page"><?php print t("Top"); ?></a>
+    <div class="forum-jump-links">
+      <a href="#top" title="<?php print t("Jump to top of page"); ?>"><?php print t("Top"); ?></a>
     </div>
 
     <?php if (!empty($links)): ?>
-      <div class="forum-post-links clearfix">
+      <div class="forum-post-links">
         <?php print $links ?>
       </div>
     <?php endif; ?>
