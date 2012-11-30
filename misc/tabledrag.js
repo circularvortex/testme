@@ -1,4 +1,3 @@
-// $Id: tabledrag.js,v 1.1.2.1.2.2 2009/03/21 20:06:59 mfer Exp $
 
 /**
  * Drag and drop table rows with field manipulation.
@@ -76,13 +75,15 @@ Drupal.tableDrag = function(table, tableSettings) {
     // manually append 2 indentations in the first draggable row, measure
     // the offset, then remove.
     var indent = Drupal.theme('tableDragIndentation');
-    var testCell = $('tr.draggable:first td:first', table).prepend(indent).prepend(indent);
+    // Match immediate children of the parent element to allow nesting.
+    var testCell = $('> tbody > tr.draggable:first td:first, > tr.draggable:first td:first', table).prepend(indent).prepend(indent);
     this.indentAmount = $('.indentation', testCell).get(1).offsetLeft - $('.indentation', testCell).get(0).offsetLeft;
     $('.indentation', testCell).slice(0, 2).remove();
   }
 
   // Make each applicable row draggable.
-  $('tr.draggable', table).each(function() { self.makeDraggable(this); });
+  // Match immediate children of the parent element to allow nesting.
+  $('> tr.draggable, > tbody > tr.draggable', table).each(function() { self.makeDraggable(this); });
 
   // Hide columns containing affected form elements.
   this.hideColumns();
@@ -112,9 +113,10 @@ Drupal.tableDrag.prototype.hideColumns = function(){
     // Hide the column containing this field.
     if (hidden && cell[0] && cell.css('display') != 'none') {
       // Add 1 to our indexes. The nth-child selector is 1 based, not 0 based.
-      var columnIndex = $('td', cell.parent()).index(cell.get(0)) + 1;
-      var headerIndex = $('td:not(:hidden)', cell.parent()).index(cell.get(0)) + 1;
-      $('tr', this.table).each(function(){
+      // Match immediate children of the parent element to allow nesting.
+      var columnIndex = $('> td', cell.parent()).index(cell.get(0)) + 1;
+      var headerIndex = $('> td:not(:hidden)', cell.parent()).index(cell.get(0)) + 1;
+      $('> thead > tr, > tbody > tr, > tr', this.table).each(function(){
         var row = $(this);
         var parentTag = row.parent().get(0).tagName.toLowerCase();
         var index = (parentTag == 'thead') ? headerIndex : columnIndex;
@@ -203,7 +205,7 @@ Drupal.tableDrag.prototype.makeDraggable = function(item) {
     self.rowObject = new self.row(item, 'mouse', self.indentEnabled, self.maxDepth, true);
 
     // Save the position of the table.
-    self.table.topY = $(self.table).offset().top;
+    self.table.topY = self.getPosition(self.table).y;
     self.table.bottomY = self.table.topY + self.table.offsetHeight;
 
     // Add classes to the handle and row.
@@ -481,6 +483,31 @@ Drupal.tableDrag.prototype.dropRow = function(event, self) {
 };
 
 /**
+ * Get the position of an element by adding up parent offsets in the DOM tree.
+ */
+Drupal.tableDrag.prototype.getPosition = function(element){
+  var left = 0;
+  var top  = 0;
+  // Because Safari doesn't report offsetHeight on table rows, but does on table
+  // cells, grab the firstChild of the row and use that instead.
+  // http://jacob.peargrove.com/blog/2006/technical/table-row-offsettop-bug-in-safari
+  if (element.offsetHeight == 0) {
+    element = element.firstChild; // a table cell
+  }
+
+  while (element.offsetParent){
+    left   += element.offsetLeft;
+    top    += element.offsetTop;
+    element = element.offsetParent;
+  }
+
+  left += element.offsetLeft;
+  top  += element.offsetTop;
+
+  return {x:left, y:top};
+};
+
+/**
  * Get the mouse coordinates from the event (allowing for browser differences).
  */
 Drupal.tableDrag.prototype.mouseCoords = function(event){
@@ -498,9 +525,9 @@ Drupal.tableDrag.prototype.mouseCoords = function(event){
  * element. To do this we need the element's position and the mouse position.
  */
 Drupal.tableDrag.prototype.getMouseOffset = function(target, event) {
-  var docPos   = $(target).offset();
+  var docPos   = this.getPosition(target);
   var mousePos = this.mouseCoords(event);
-  return { x: mousePos.x - docPos.left, y: mousePos.y - docPos.top };
+  return {x:mousePos.x - docPos.x, y:mousePos.y - docPos.y};
 };
 
 /**
@@ -517,15 +544,14 @@ Drupal.tableDrag.prototype.findDropTargetRow = function(x, y) {
   for (var n=0; n<rows.length; n++) {
     var row = rows[n];
     var indentDiff = 0;
-    var rowY = $(row).offset().top;
-    // Because Safari does not report offsetHeight on table rows, but does on table
-    // cells, grab the firstChild of the row and use that instead.
-    // http://jacob.peargrove.com/blog/2006/technical/table-row-offsettop-bug-in-safari
+    // Safari fix see Drupal.tableDrag.prototype.getPosition()
     if (row.offsetHeight == 0) {
+      var rowY = this.getPosition(row.firstChild).y;
       var rowHeight = parseInt(row.firstChild.offsetHeight)/2;
     }
     // Other browsers.
     else {
+      var rowY = this.getPosition(row).y;
       var rowHeight = parseInt(row.offsetHeight)/2;
     }
 
@@ -539,13 +565,6 @@ Drupal.tableDrag.prototype.findDropTargetRow = function(x, y) {
           }
         }
       }
-      else {
-        // Do not allow a row to be swapped with itself.
-        if (row == this.rowObject.element) {
-          return null;
-        }
-      }
-
       // Check that swapping with this row is allowed.
       if (!this.rowObject.isValidSwap(row)) {
         return null;
@@ -758,7 +777,8 @@ Drupal.tableDrag.prototype.setScroll = function(scrollAmount) {
 Drupal.tableDrag.prototype.restripeTable = function() {
   // :even and :odd are reversed because jquery counts from 0 and
   // we count from 1, so we're out of sync.
-  $('tr.draggable', this.table)
+  // Match immediate children of the parent element to allow nesting.
+  $('> tbody > tr.draggable, > tr.draggable', this.table)
     .filter(':odd').filter('.odd')
       .removeClass('odd').addClass('even')
     .end().end()
@@ -994,7 +1014,7 @@ Drupal.tableDrag.prototype.row.prototype.findSiblings = function(rowSettings) {
   var siblings = new Array();
   var directions = new Array('prev', 'next');
   var rowIndentation = this.indents;
-  for (var d in directions) {
+  for (var d = 0; d < directions.length; d++) {
     var checkRow = $(this.element)[directions[d]]();
     while (checkRow.length) {
       // Check that the sibling contains a similar target field.
